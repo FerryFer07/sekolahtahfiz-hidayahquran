@@ -911,6 +911,15 @@ hr {
   line-height: 2.3;
   margin-top: 15px;
 }
+.quran-kecil {
+  font-size: 24px;
+}
+.quran-sedang {
+  font-size: 30px;
+}
+.quran-besar {
+  font-size: 38px;
+}
 .feedback-note {
   background: var(--secondary);
   border-left: 3px solid var(--primary);
@@ -1367,7 +1376,9 @@ td button {
     transform: translateX(0);
     box-shadow: var(--shadow);
   }
-  .school-sidebar:not(.is-open) { visibility: hidden; }
+  .school-sidebar:not(.is-open) {
+    visibility: hidden;
+  }
   .school-main {
     margin-left: 0;
     width: 100%;
@@ -1570,8 +1581,12 @@ td button {
   }
 }
 @media (max-width: 760px) {
-  .auth-intro h1 br { display: block; }
-  .auth-intro h1 span { margin-left: 0; }
+  .auth-intro h1 br {
+    display: block;
+  }
+  .auth-intro h1 span {
+    margin-left: 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   * {

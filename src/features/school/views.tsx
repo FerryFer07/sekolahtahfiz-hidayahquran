@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -335,6 +335,24 @@ export function EntryView({ initial = "" }: { initial?: string }) {
   const first = verses.find((v) => v.id === Number(from)),
     last = verses.find((v) => v.id === Number(to));
   const home = role === "wali";
+  const [summary, setSummary] = useState<{
+    jumlah_baris: number;
+    halaman_dari: number;
+    halaman_sampai: number;
+  } | null>(null);
+  useEffect(() => {
+    let current = true;
+    setSummary(null);
+    if (!from || !to) return;
+    supabase
+      .rpc("verse_range_summary", { _from: Number(from), _to: Number(to) })
+      .then(({ data }) => {
+        if (current) setSummary(data?.[0] || null);
+      });
+    return () => {
+      current = false;
+    };
+  }, [from, to]);
   async function loadSurah(id: string) {
     setSurah(id);
     setFrom("");
@@ -364,14 +382,12 @@ export function EntryView({ initial = "" }: { initial?: string }) {
           ? await supabase
               .from("setoran_iqro")
               .insert({ ...common, jilid, halaman_dari: pageFrom, halaman_sampai: pageTo })
-          : await supabase
-              .from("setoran")
-              .insert({
-                ...common,
-                jenis: home && kind === "sabaq" ? "sabaq" : kind,
-                dari_ayat_id: Number(from),
-                sampai_ayat_id: Number(to),
-              });
+          : await supabase.from("setoran").insert({
+              ...common,
+              jenis: home && kind === "sabaq" ? "sabaq" : kind,
+              dari_ayat_id: Number(from),
+              sampai_ayat_id: Number(to),
+            });
       if (r.error) throw r.error;
       setMessage("Setoran berhasil disimpan.");
       setNote("");
@@ -544,9 +560,13 @@ export function EntryView({ initial = "" }: { initial?: string }) {
                   {first && last && (
                     <div className="verse-preview">
                       <span>
-                        Halaman {first.halaman}–{last.halaman} · Jumlah baris dihitung saat disimpan
+                        Halaman {first.halaman}–{last.halaman} · {summary?.jumlah_baris ?? "…"}{" "}
+                        baris
                       </span>
-                      <div dir="rtl" className={`quran-text quran-${me?.ukuran_huruf_quran || 'sedang'}`}>
+                      <div
+                        dir="rtl"
+                        className={`quran-text quran-${me?.ukuran_huruf_quran || "sedang"}`}
+                      >
                         {verses
                           .filter((v) => v.id >= first.id && v.id <= last.id)
                           .map((v) => (
@@ -1073,12 +1093,10 @@ export function AdminView() {
       if (tab === "user") {
         if (editing) {
           const uid = String(editing["id"]);
-          const r = await supabase
-            .from("user_roles")
-            .upsert({
-              user_id: uid,
-              role: String(values["role"]) as Database["public"]["Enums"]["app_role"],
-            });
+          const r = await supabase.rpc("set_user_role", {
+            _user: uid,
+            _role: String(values["role"]) as Database["public"]["Enums"]["app_role"],
+          });
           if (r.error) throw r.error;
         } else
           await create({

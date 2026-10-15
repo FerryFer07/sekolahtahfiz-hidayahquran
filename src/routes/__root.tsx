@@ -83,7 +83,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Pendampingan hafalan Sekolah Tahfidz Hidayah Qur’an" },
       { name: "author", content: "STHQ Jakarta" },
       { property: "og:title", content: "Mutaba’ah Tahfidz · STHQ Jakarta" },
-      { property: "og:description", content: "Pendampingan hafalan Sekolah Tahfidz Hidayah Qur’an" },
+      {
+        property: "og:description",
+        content: "Pendampingan hafalan Sekolah Tahfidz Hidayah Qur’an",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -93,7 +96,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&family=Amiri+Quran&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&family=Amiri+Quran&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
