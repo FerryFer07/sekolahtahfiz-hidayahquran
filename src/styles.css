@@ -1367,6 +1367,7 @@ td button {
     transform: translateX(0);
     box-shadow: var(--shadow);
   }
+  .school-sidebar:not(.is-open) { visibility: hidden; }
   .school-main {
     margin-left: 0;
     width: 100%;

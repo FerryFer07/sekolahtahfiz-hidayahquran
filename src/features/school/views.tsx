@@ -314,7 +314,7 @@ export function HomeView() {
   );
 }
 export function EntryView({ initial = "" }: { initial?: string }) {
-  const { data, role, refresh } = useSchool();
+  const { data, role, me, refresh } = useSchool();
   const [student, setStudent] = useState(initial || data.santri[0]?.id || "");
   const s = data.santri.find((s) => s.id === student);
   const [date, setDate] = useState(jakartaDate());
@@ -546,7 +546,7 @@ export function EntryView({ initial = "" }: { initial?: string }) {
                       <span>
                         Halaman {first.halaman}–{last.halaman} · Jumlah baris dihitung saat disimpan
                       </span>
-                      <div dir="rtl" className="quran-text">
+                      <div dir="rtl" className={`quran-text quran-${me?.ukuran_huruf_quran || 'sedang'}`}>
                         {verses
                           .filter((v) => v.id >= first.id && v.id <= last.id)
                           .map((v) => (
