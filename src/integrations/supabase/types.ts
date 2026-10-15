@@ -562,7 +562,19 @@ export type Database = {
         Returns: boolean
       }
       owns_child: { Args: { _santri: string }; Returns: boolean }
+      set_user_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"]; _user: string }
+        Returns: undefined
+      }
       teaches_halaqah: { Args: { _halaqah: string }; Returns: boolean }
+      verse_range_summary: {
+        Args: { _from: number; _to: number }
+        Returns: {
+          halaman_dari: number
+          halaman_sampai: number
+          jumlah_baris: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "ustadz" | "badal" | "pengawas" | "wali"

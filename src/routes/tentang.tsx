@@ -1,7 +1,67 @@
-import {createFileRoute,Link} from '@tanstack/react-router';
-import {ArrowLeft,MapPin} from 'lucide-react';
-import {Button} from '@/components/ui/button';
-import {pageHead,schoolName,schoolAddress} from '@/features/school/constants';
-import logo from '@/assets/sthq-logo.png.asset.json';
-export const Route=createFileRoute('/tentang')({head:()=>pageHead('Tentang STHQ','Profil, visi, misi, dan kurikulum Sekolah Tahfidz Hidayah Qur’an Jakarta.'),component:About});
-function About(){return <main className="about-page"><header className="about-header"><img src={logo.url} alt="Logo STHQ"/><Button variant="outline" asChild><Link to="/"><ArrowLeft/>Kembali ke mutaba’ah</Link></Button></header><section className="about-intro"><p className="eyebrow">STHQ JAKARTA</p><h1>{schoolName}</h1><p>Sekolah Tahfidz Hidayah Qur'an Jakarta (STHQ) adalah sekolah pendidikan agama Islam setingkat Sekolah Dasar non-asrama yang berfokus pada hafalan Al-Qur'an.</p></section><div className="about-grid"><section><h2>Visi</h2><p>Terwujudnya generasi Hafidz Al-Qur'an yang paham agama dan berkarakter Qur'ani.</p></section><section><h2>Misi</h2><ul><li>Menanamkan nilai-nilai tauhid pada usia dini.</li><li>Mengajarkan metode menghafal Al-Qur'an yang efektif dan efisien.</li><li>Membiasakan anak bersahabat dan cinta Al-Qur'an.</li><li>Mengajarkan anak praktek ibadah yang sesuai dengan sunnah.</li><li>Berperan aktif mendidik anak agar memiliki akhlakul karimah.</li></ul></section></div><section className="about-section"><h2>Kurikulum</h2><p>Kurikulum Sekolah Tahfidz Hidayah Qur’an mencakup mata pelajaran diniyah berlandaskan pada Al-Qur'an dan Sunnah, sesuai dengan pemahaman salafus shalih. Sekolah ini juga menyertakan mata pelajaran umum yang disesuaikan dengan kurikulum Nasional.</p></section><section className="about-section about-address"><MapPin/><div><h2>Alamat sekolah</h2><p>{schoolAddress}</p></div></section></main>}
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeft, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { pageHead, schoolName, schoolAddress } from "@/features/school/constants";
+import logo from "@/assets/sthq-logo.png.asset.json";
+export const Route = createFileRoute("/tentang")({
+  head: () =>
+    pageHead(
+      "Tentang STHQ",
+      "Profil, visi, misi, dan kurikulum Sekolah Tahfidz Hidayah Qur’an Jakarta.",
+    ),
+  component: About,
+});
+function About() {
+  return (
+    <main className="about-page">
+      <header className="about-header">
+        <img src={logo.url} alt="Logo STHQ" />
+        <Button variant="outline" asChild>
+          <Link to="/">
+            <ArrowLeft />
+            Kembali ke mutaba’ah
+          </Link>
+        </Button>
+      </header>
+      <section className="about-intro">
+        <p className="eyebrow">STHQ JAKARTA</p>
+        <h1>{schoolName}</h1>
+        <p>
+          Sekolah Tahfidz Hidayah Qur'an Jakarta (STHQ) adalah sekolah pendidikan agama Islam
+          setingkat Sekolah Dasar non-asrama yang berfokus pada hafalan Al-Qur'an.
+        </p>
+      </section>
+      <div className="about-grid">
+        <section>
+          <h2>Visi</h2>
+          <p>Terwujudnya generasi Hafidz Al-Qur'an yang paham agama dan berkarakter Qur'ani.</p>
+        </section>
+        <section>
+          <h2>Misi</h2>
+          <ul>
+            <li>Menanamkan nilai-nilai tauhid pada usia dini.</li>
+            <li>Mengajarkan metode menghafal Al-Qur'an yang efektif dan efisien.</li>
+            <li>Membiasakan anak bersahabat dan cinta Al-Qur'an.</li>
+            <li>Mengajarkan anak praktek ibadah yang sesuai dengan sunnah.</li>
+            <li>Berperan aktif mendidik anak agar memiliki akhlakul karimah.</li>
+          </ul>
+        </section>
+      </div>
+      <section className="about-section">
+        <h2>Kurikulum</h2>
+        <p>
+          Kurikulum Sekolah Tahfidz Hidayah Qur’an mencakup mata pelajaran diniyah berlandaskan pada
+          Al-Qur'an dan Sunnah, sesuai dengan pemahaman salafus shalih. Sekolah ini juga menyertakan
+          mata pelajaran umum yang disesuaikan dengan kurikulum Nasional.
+        </p>
+      </section>
+      <section className="about-section about-address">
+        <MapPin />
+        <div>
+          <h2>Alamat sekolah</h2>
+          <p>{schoolAddress}</p>
+        </div>
+      </section>
+    </main>
+  );
+}
