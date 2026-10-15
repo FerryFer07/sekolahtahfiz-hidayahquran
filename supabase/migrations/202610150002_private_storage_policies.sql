@@ -1,0 +1,2 @@
+create policy school_files_admin on storage.objects for all to authenticated using(bucket_id='school-private' and public.has_role(auth.uid(),'admin')) with check(bucket_id='school-private' and public.has_role(auth.uid(),'admin'));
+revoke all on function public.create_profile() from public,anon,authenticated;
