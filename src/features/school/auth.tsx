@@ -137,7 +137,7 @@ export function AuthPage() {
                 <label>
                   <span className="password-label">
                     Kata sandi
-                    <Button type="button" variant="link" onClick={() => setReset(true)}>
+                    <Button type="button" variant="link" aria-label="Lupa kata sandi?" onClick={() => setReset(true)}>
                       Lupa kata sandi?
                     </Button>
                   </span>
@@ -148,6 +148,7 @@ export function AuthPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Masukkan kata sandi"
                       autoComplete="current-password"
+                      aria-label="Kata sandi"
                       required
                     />
                     <Button

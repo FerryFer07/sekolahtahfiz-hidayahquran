@@ -1568,6 +1568,10 @@ td button {
     font-size: 10px;
   }
 }
+@media (max-width: 760px) {
+  .auth-intro h1 br { display: block; }
+  .auth-intro h1 span { margin-left: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
