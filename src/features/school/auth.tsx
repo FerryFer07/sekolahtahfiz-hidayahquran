@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/sthq-logo.png.asset.json";
+import logoUrl from "@/assets/sthq-logo.png";
 export function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -53,7 +53,7 @@ export function AuthPage() {
     <div className="auth-page">
       <header className="auth-header">
         <Link to="/" className="auth-brand">
-          <img src={logo.url} alt="Logo Sekolah Tahfidz Hidayah Qur'an" />
+          <img src={logoUrl} alt="Logo Sekolah Tahfidz Hidayah Qur'an" />
           <span>
             SEKOLAH TAHFIDZ
             <br />

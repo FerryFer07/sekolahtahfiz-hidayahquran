@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { pageHead } from "@/features/school/constants";
-import logo from "@/assets/sthq-logo.png.asset.json";
+import logoUrl from "@/assets/sthq-logo.png";
 export const Route = createFileRoute("/reset-password")({
   head: () => pageHead("Ganti kata sandi", "Atur ulang kata sandi akun Mutaba’ah STHQ."),
   component: Reset,
@@ -20,7 +20,7 @@ function Reset() {
           setMessage(r.error ? r.error.message : "Kata sandi berhasil diganti.");
         }}
       >
-        <img src={logo.url} alt="Logo STHQ" />
+        <img src={logoUrl} alt="Logo STHQ" />
         <h1>Kata sandi baru</h1>
         <label>
           Kata sandi

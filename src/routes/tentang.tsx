@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { pageHead, schoolName, schoolAddress } from "@/features/school/constants";
-import logo from "@/assets/sthq-logo.png.asset.json";
+import logoUrl from "@/assets/sthq-logo.png";
 export const Route = createFileRoute("/tentang")({
   head: () =>
     pageHead(
@@ -15,7 +15,7 @@ function About() {
   return (
     <main className="about-page">
       <header className="about-header">
-        <img src={logo.url} alt="Logo STHQ" />
+        <img src={logoUrl} alt="Logo STHQ" />
         <Button variant="outline" asChild>
           <Link to="/">
             <ArrowLeft />

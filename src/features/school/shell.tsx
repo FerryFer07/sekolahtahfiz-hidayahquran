@@ -15,7 +15,7 @@ import {
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/sthq-logo.png.asset.json";
+import logoUrl from "@/assets/sthq-logo.png";
 import { schoolQuery } from "./queries";
 export function SchoolShell({
   children,
@@ -40,7 +40,7 @@ export function SchoolShell({
     <div className="school-app">
       <aside className={`school-sidebar ${menu ? "is-open" : ""}`}>
         <Link to="/beranda" className="school-brand">
-          <img src={logo.url} alt="Logo STHQ" />
+          <img src={logoUrl} alt="Logo STHQ" />
           <span>
             Mutaba’ah<span>Tahfidz Hidayah Qur’an</span>
           </span>
@@ -83,7 +83,7 @@ export function SchoolShell({
           )}
         </nav>
         <div className="sidebar-school">
-          <img src={logo.url} alt="" />
+          <img src={logoUrl} alt="" />
           <p>
             Sekolah Tahfidz
             <br />
