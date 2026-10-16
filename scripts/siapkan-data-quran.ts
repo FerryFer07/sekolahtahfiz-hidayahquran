@@ -4,12 +4,15 @@
  * Sumber: Quran.com API v4 (Quran Foundation), endpoint publik https://api.quran.com/api/v4.
  * Mushaf: Madinah 15 baris, 604 halaman (layout bawaan endpoint by_page).
  * Teks diambil apa adanya; skrip ini hanya memetakan kolom dan menghitung baris awal/akhir ayat.
+ * teks_tajwid: warna hukum dari /quran/verses/uthmani_tajweed dipindahkan ke teks Utsmani resmi
+ * (sumber tajwid memakai pengkodean harakat berbeda), sehingga huruf yang tampil selalu teks_utsmani.
  *
  * Jalankan: bun scripts/siapkan-data-quran.ts
  * Hasil:    data/quran/surah.json, data/quran/ayat.json, data/quran/SUMBER.md
  *           (format yang diterima menu Admin → Impor Al-Qur'an)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
+import { pindahkanWarnaTajwid, tajwidPlainText } from "../src/features/school/tajwid.ts";
 
 const API = "https://api.quran.com/api/v4";
 const OUT = "data/quran";
@@ -94,7 +97,7 @@ for (const c of chapters) {
       baris_awal: l.first,
       baris_akhir: l.last,
       teks_utsmani: t,
-      teks_tajwid: tajwid.get(key) ?? "",
+      teks_tajwid: tajwid.has(key) ? pindahkanWarnaTajwid(tajwid.get(key)!, t) : "",
     });
   }
 }
@@ -108,6 +111,9 @@ for (let i = 1; i < ayat.length; i++) {
 const juz = new Set(ayat.map((a) => a.juz));
 if (juz.size !== 30) fail(`juz terisi ${juz.size}, seharusnya 30`);
 const missingTajwid = ayat.filter((a) => !a.teks_tajwid).length;
+for (const a of ayat)
+  if (a.teks_tajwid && tajwidPlainText(a.teks_tajwid) !== a.teks_utsmani.trim())
+    fail(`huruf teks_tajwid ayat id ${a.id} tidak identik dengan teks_utsmani`);
 
 mkdirSync(OUT, { recursive: true });
 const surah = chapters.map((c) => ({
@@ -127,12 +133,16 @@ writeFileSync(
 - Sumber: Quran.com API v4 (Quran Foundation), ${API}
   - \`/chapters?language=id\` — nama surah dan jumlah ayat
   - \`/quran/verses/uthmani\` — teks Utsmani per ayat
-  - \`/quran/verses/uthmani_tajweed\` — teks Utsmani bermarkup tajwid (\`<tajweed class=…>\`)
+  - \`/quran/verses/uthmani_tajweed\` — sumber warna hukum tajwid (\`<tajweed class=…>\`). Teks ini memakai
+    pengkodean harakat berbeda (mis. U+0672/U+0670, U+0652/U+06DF), jadi hanya posisi kelas hukumnya
+    yang dipindahkan ke teks Utsmani resmi lewat penyejajaran per karakter
+    (\`pindahkanWarnaTajwid\` di \`src/features/school/tajwid.ts\`).
   - \`/verses/by_page/{1..604}\` — halaman, juz, dan nomor baris setiap kata (mushaf Madinah 15 baris)
 - Tanggal ambil: ${today}
 - Dibuat oleh: \`bun scripts/siapkan-data-quran.ts\`
 - Validasi lulus: 114 surah, 6236 ayat, 604 halaman, 30 juz, semua baris 1–15, tidak ada ayat
-  melintasi halaman. Ayat tanpa markup tajwid: ${missingTajwid}.
+  melintasi halaman, huruf \`teks_tajwid\` identik dengan \`teks_utsmani\` di semua ayat.
+  Ayat tanpa markup tajwid: ${missingTajwid}.
 - baris_awal/baris_akhir = baris kata pertama/terakhir ayat (termasuk penanda nomor ayat) di halaman itu.
 
 ## Status

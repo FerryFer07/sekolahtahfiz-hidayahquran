@@ -18,6 +18,7 @@ import { Route as AuthenticatedBerandaRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticated/kalender'
 import { Route as AuthenticatedPengaturanRouteImport } from './routes/_authenticated/pengaturan'
 import { Route as AuthenticatedPengawasRouteImport } from './routes/_authenticated/pengawas'
+import { Route as AuthenticatedQuranRouteImport } from './routes/_authenticated/quran'
 import { Route as AuthenticatedRiwayatRouteImport } from './routes/_authenticated/riwayat'
 import { Route as AuthenticatedSetoranRouteImport } from './routes/_authenticated/setoran'
 import { Route as ApiMigrateHelperRouteImport } from './routes/api/migrate-helper'
@@ -66,6 +67,11 @@ const AuthenticatedPengawasRoute = AuthenticatedPengawasRouteImport.update({
   path: '/pengawas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedQuranRoute = AuthenticatedQuranRouteImport.update({
+  id: '/quran',
+  path: '/quran',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRiwayatRoute = AuthenticatedRiwayatRouteImport.update({
   id: '/riwayat',
   path: '/riwayat',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/kalender': typeof AuthenticatedKalenderRoute
   '/pengaturan': typeof AuthenticatedPengaturanRoute
   '/pengawas': typeof AuthenticatedPengawasRoute
+  '/quran': typeof AuthenticatedQuranRoute
   '/riwayat': typeof AuthenticatedRiwayatRoute
   '/setoran': typeof AuthenticatedSetoranRoute
   '/api/migrate-helper': typeof ApiMigrateHelperRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/kalender': typeof AuthenticatedKalenderRoute
   '/pengaturan': typeof AuthenticatedPengaturanRoute
   '/pengawas': typeof AuthenticatedPengawasRoute
+  '/quran': typeof AuthenticatedQuranRoute
   '/riwayat': typeof AuthenticatedRiwayatRoute
   '/setoran': typeof AuthenticatedSetoranRoute
   '/api/migrate-helper': typeof ApiMigrateHelperRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_authenticated/kalender': typeof AuthenticatedKalenderRoute
   '/_authenticated/pengaturan': typeof AuthenticatedPengaturanRoute
   '/_authenticated/pengawas': typeof AuthenticatedPengawasRoute
+  '/_authenticated/quran': typeof AuthenticatedQuranRoute
   '/_authenticated/riwayat': typeof AuthenticatedRiwayatRoute
   '/_authenticated/setoran': typeof AuthenticatedSetoranRoute
   '/api/migrate-helper': typeof ApiMigrateHelperRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/kalender'
     | '/pengaturan'
     | '/pengawas'
+    | '/quran'
     | '/riwayat'
     | '/setoran'
     | '/api/migrate-helper'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/kalender'
     | '/pengaturan'
     | '/pengawas'
+    | '/quran'
     | '/riwayat'
     | '/setoran'
     | '/api/migrate-helper'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/_authenticated/kalender'
     | '/_authenticated/pengaturan'
     | '/_authenticated/pengawas'
+    | '/_authenticated/quran'
     | '/_authenticated/riwayat'
     | '/_authenticated/setoran'
     | '/api/migrate-helper'
@@ -239,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPengawasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/quran': {
+      id: '/_authenticated/quran'
+      path: '/quran'
+      fullPath: '/quran'
+      preLoaderRoute: typeof AuthenticatedQuranRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/riwayat': {
       id: '/_authenticated/riwayat'
       path: '/riwayat'
@@ -269,6 +288,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKalenderRoute: typeof AuthenticatedKalenderRoute
   AuthenticatedPengaturanRoute: typeof AuthenticatedPengaturanRoute
   AuthenticatedPengawasRoute: typeof AuthenticatedPengawasRoute
+  AuthenticatedQuranRoute: typeof AuthenticatedQuranRoute
   AuthenticatedRiwayatRoute: typeof AuthenticatedRiwayatRoute
   AuthenticatedSetoranRoute: typeof AuthenticatedSetoranRoute
 }
@@ -279,6 +299,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKalenderRoute: AuthenticatedKalenderRoute,
   AuthenticatedPengaturanRoute: AuthenticatedPengaturanRoute,
   AuthenticatedPengawasRoute: AuthenticatedPengawasRoute,
+  AuthenticatedQuranRoute: AuthenticatedQuranRoute,
   AuthenticatedRiwayatRoute: AuthenticatedRiwayatRoute,
   AuthenticatedSetoranRoute: AuthenticatedSetoranRoute,
 }

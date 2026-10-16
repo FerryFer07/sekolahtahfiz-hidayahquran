@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   CalendarDays,
+  BookMarked,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export function SchoolShell({
     { to: "/beranda", label: "Beranda", icon: House },
     { to: "/setoran", label: "Input setoran", icon: BookOpen },
     { to: "/riwayat", label: "Riwayat santri", icon: History },
+    { to: "/quran", label: "Al-Qur’an", icon: BookMarked },
     { to: "/pengaturan", label: "Pengaturan akun", icon: Settings },
   ] as const;
   return (

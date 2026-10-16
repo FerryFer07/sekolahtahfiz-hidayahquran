@@ -3,12 +3,16 @@
 - Sumber: Quran.com API v4 (Quran Foundation), https://api.quran.com/api/v4
   - `/chapters?language=id` — nama surah dan jumlah ayat
   - `/quran/verses/uthmani` — teks Utsmani per ayat
-  - `/quran/verses/uthmani_tajweed` — teks Utsmani bermarkup tajwid (`<tajweed class=…>`)
+  - `/quran/verses/uthmani_tajweed` — sumber warna hukum tajwid (`<tajweed class=…>`). Teks ini memakai
+    pengkodean harakat berbeda (mis. U+0672/U+0670, U+0652/U+06DF), jadi hanya posisi kelas hukumnya
+    yang dipindahkan ke teks Utsmani resmi lewat penyejajaran per karakter
+    (`pindahkanWarnaTajwid` di `src/features/school/tajwid.ts`).
   - `/verses/by_page/{1..604}` — halaman, juz, dan nomor baris setiap kata (mushaf Madinah 15 baris)
 - Tanggal ambil: 2026-10-16
 - Dibuat oleh: `bun scripts/siapkan-data-quran.ts`
 - Validasi lulus: 114 surah, 6236 ayat, 604 halaman, 30 juz, semua baris 1–15, tidak ada ayat
-  melintasi halaman. Ayat tanpa markup tajwid: 0.
+  melintasi halaman, huruf `teks_tajwid` identik dengan `teks_utsmani` di semua ayat.
+  Ayat tanpa markup tajwid: 0.
 - baris_awal/baris_akhir = baris kata pertama/terakhir ayat (termasuk penanda nomor ayat) di halaman itu.
 
 ## Status
