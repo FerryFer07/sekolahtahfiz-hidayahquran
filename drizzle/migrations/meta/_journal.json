@@ -29,6 +29,13 @@
       "when": 1792122829534,
       "tag": "0003_rls_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792122852127,
+      "tag": "0004_kalender_sekolah",
+      "breakpoints": true
     }
   ]
 }
