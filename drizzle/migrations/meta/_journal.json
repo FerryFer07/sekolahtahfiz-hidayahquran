@@ -43,13 +43,6 @@
       "when": 1792132347796,
       "tag": "0005_peran_tambahan",
       "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1792132347798,
-      "tag": "0006_fondasi_rujukan",
-      "breakpoints": true
     }
   ]
 }
