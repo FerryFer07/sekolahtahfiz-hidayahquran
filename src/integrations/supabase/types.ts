@@ -397,8 +397,8 @@ export type Database = {
           judul: string
           lisensi_atau_izin: string
           penerbit: string
-          penulis: string
           pentahqiq: string
+          penulis: string
           status: string
         }
         Insert: {
@@ -412,8 +412,8 @@ export type Database = {
           judul: string
           lisensi_atau_izin?: string
           penerbit?: string
-          penulis?: string
           pentahqiq?: string
+          penulis?: string
           status?: string
         }
         Update: {
@@ -427,8 +427,8 @@ export type Database = {
           judul?: string
           lisensi_atau_izin?: string
           penerbit?: string
-          penulis?: string
           pentahqiq?: string
+          penulis?: string
           status?: string
         }
         Relationships: []
