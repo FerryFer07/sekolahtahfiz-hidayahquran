@@ -437,35 +437,53 @@ export type Database = {
         Row: {
           aktif: boolean
           catatan: string
+          foto_path: string | null
           halaqah_id: string | null
           id: string
           jalur: string
+          jenis_kelamin: string | null
           kelas: string
           nama: string
+          nama_panggilan: string
           nis: string
+          nisn: string
           posisi_hafalan_ayat_id: number | null
+          status: string
+          tanggal_masuk: string | null
         }
         Insert: {
           aktif?: boolean
           catatan?: string
+          foto_path?: string | null
           halaqah_id?: string | null
           id?: string
           jalur: string
+          jenis_kelamin?: string | null
           kelas: string
           nama: string
+          nama_panggilan?: string
           nis: string
+          nisn?: string
           posisi_hafalan_ayat_id?: number | null
+          status?: string
+          tanggal_masuk?: string | null
         }
         Update: {
           aktif?: boolean
           catatan?: string
+          foto_path?: string | null
           halaqah_id?: string | null
           id?: string
           jalur?: string
+          jenis_kelamin?: string | null
           kelas?: string
           nama?: string
+          nama_panggilan?: string
           nis?: string
+          nisn?: string
           posisi_hafalan_ayat_id?: number | null
+          status?: string
+          tanggal_masuk?: string | null
         }
         Relationships: [
           {
@@ -480,6 +498,110 @@ export type Database = {
             columns: ["posisi_hafalan_ayat_id"]
             isOneToOne: false
             referencedRelation: "quran_ayat"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      santri_pribadi: {
+        Row: {
+          alamat: string
+          anak_ke: number | null
+          asal_sekolah: string
+          catatan_kesehatan: string
+          diperbarui_pada: string
+          hp_ayah: string
+          hp_ibu: string
+          hp_wali: string
+          hubungan_wali: string
+          jumlah_saudara: number | null
+          kecamatan: string
+          kelurahan: string
+          kontak_darurat_hp: string
+          kontak_darurat_nama: string
+          kota: string
+          nama_ayah: string
+          nama_ibu: string
+          nama_wali_lain: string
+          nik: string
+          no_kk: string
+          pekerjaan_ayah: string
+          pekerjaan_ibu: string
+          pendidikan_ayah: string
+          pendidikan_ibu: string
+          rt: string
+          rw: string
+          santri_id: string
+          tanggal_lahir: string | null
+          tempat_lahir: string
+        }
+        Insert: {
+          alamat?: string
+          anak_ke?: number | null
+          asal_sekolah?: string
+          catatan_kesehatan?: string
+          diperbarui_pada?: string
+          hp_ayah?: string
+          hp_ibu?: string
+          hp_wali?: string
+          hubungan_wali?: string
+          jumlah_saudara?: number | null
+          kecamatan?: string
+          kelurahan?: string
+          kontak_darurat_hp?: string
+          kontak_darurat_nama?: string
+          kota?: string
+          nama_ayah?: string
+          nama_ibu?: string
+          nama_wali_lain?: string
+          nik?: string
+          no_kk?: string
+          pekerjaan_ayah?: string
+          pekerjaan_ibu?: string
+          pendidikan_ayah?: string
+          pendidikan_ibu?: string
+          rt?: string
+          rw?: string
+          santri_id: string
+          tanggal_lahir?: string | null
+          tempat_lahir?: string
+        }
+        Update: {
+          alamat?: string
+          anak_ke?: number | null
+          asal_sekolah?: string
+          catatan_kesehatan?: string
+          diperbarui_pada?: string
+          hp_ayah?: string
+          hp_ibu?: string
+          hp_wali?: string
+          hubungan_wali?: string
+          jumlah_saudara?: number | null
+          kecamatan?: string
+          kelurahan?: string
+          kontak_darurat_hp?: string
+          kontak_darurat_nama?: string
+          kota?: string
+          nama_ayah?: string
+          nama_ibu?: string
+          nama_wali_lain?: string
+          nik?: string
+          no_kk?: string
+          pekerjaan_ayah?: string
+          pekerjaan_ibu?: string
+          pendidikan_ayah?: string
+          pendidikan_ibu?: string
+          rt?: string
+          rw?: string
+          santri_id?: string
+          tanggal_lahir?: string | null
+          tempat_lahir?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "santri_pribadi_santri_id_fkey"
+            columns: ["santri_id"]
+            isOneToOne: true
+            referencedRelation: "santri"
             referencedColumns: ["id"]
           },
         ]
@@ -728,6 +850,28 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      kesehatan_santri: {
+        Args: never
+        Returns: {
+          catatan_kesehatan: string
+          santri_id: string
+        }[]
+      }
+      kontak_wali_santri: {
+        Args: never
+        Returns: {
+          hp_ayah: string
+          hp_ibu: string
+          hp_wali: string
+          hubungan_wali: string
+          kontak_darurat_hp: string
+          kontak_darurat_nama: string
+          nama_ayah: string
+          nama_ibu: string
+          nama_wali_lain: string
+          santri_id: string
+        }[]
       }
       owns_child: { Args: { _santri: string }; Returns: boolean }
       set_user_role: {
