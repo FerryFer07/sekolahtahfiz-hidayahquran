@@ -53,47 +53,6 @@ export type Database = {
           },
         ]
       }
-      hukum_tajwid: {
-        Row: {
-          bait_matan: string
-          contoh: string
-          kelompok: string
-          kode: string
-          nama: string
-          penjelasan: string
-          rujukan_id: string | null
-          warna_hex: string
-        }
-        Insert: {
-          bait_matan?: string
-          contoh?: string
-          kelompok: string
-          kode: string
-          nama: string
-          penjelasan?: string
-          rujukan_id?: string | null
-          warna_hex: string
-        }
-        Update: {
-          bait_matan?: string
-          contoh?: string
-          kelompok?: string
-          kode?: string
-          nama?: string
-          penjelasan?: string
-          rujukan_id?: string | null
-          warna_hex?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "hukum_tajwid_rujukan_id_fkey"
-            columns: ["rujukan_id"]
-            isOneToOne: false
-            referencedRelation: "rujukan"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       kalender_sekolah: {
         Row: {
           created_at: string
@@ -289,7 +248,6 @@ export type Database = {
           nama: string
           no_hp: string
           persetujuan_data_pada: string | null
-          tampilkan_tajwid: boolean
           ukuran_huruf_quran: string
         }
         Insert: {
@@ -297,7 +255,6 @@ export type Database = {
           nama?: string
           no_hp?: string
           persetujuan_data_pada?: string | null
-          tampilkan_tajwid?: boolean
           ukuran_huruf_quran?: string
         }
         Update: {
@@ -305,7 +262,6 @@ export type Database = {
           nama?: string
           no_hp?: string
           persetujuan_data_pada?: string | null
-          tampilkan_tajwid?: boolean
           ukuran_huruf_quran?: string
         }
         Relationships: []
@@ -318,9 +274,7 @@ export type Database = {
           halaman: number
           id: number
           juz: number
-          rujukan_id: string | null
           surah: number
-          teks_tajwid: string
           teks_utsmani: string
         }
         Insert: {
@@ -330,9 +284,7 @@ export type Database = {
           halaman: number
           id: number
           juz: number
-          rujukan_id?: string | null
           surah: number
-          teks_tajwid?: string
           teks_utsmani: string
         }
         Update: {
@@ -342,19 +294,10 @@ export type Database = {
           halaman?: number
           id?: number
           juz?: number
-          rujukan_id?: string | null
           surah?: number
-          teks_tajwid?: string
           teks_utsmani?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "quran_ayat_rujukan_id_fkey"
-            columns: ["rujukan_id"]
-            isOneToOne: false
-            referencedRelation: "rujukan"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "quran_ayat_surah_fkey"
             columns: ["surah"]
@@ -382,54 +325,6 @@ export type Database = {
           jumlah_ayat?: number
           nama_arab?: string
           nama_latin?: string
-        }
-        Relationships: []
-      }
-      rujukan: {
-        Row: {
-          catatan: string
-          created_at: string
-          disahkan_oleh_nama: string
-          disetujui_pada: string | null
-          edisi: string
-          id: string
-          jenis: string
-          judul: string
-          lisensi_atau_izin: string
-          penerbit: string
-          penulis: string
-          pentahqiq: string
-          status: string
-        }
-        Insert: {
-          catatan?: string
-          created_at?: string
-          disahkan_oleh_nama?: string
-          disetujui_pada?: string | null
-          edisi?: string
-          id?: string
-          jenis: string
-          judul: string
-          lisensi_atau_izin?: string
-          penerbit?: string
-          penulis?: string
-          pentahqiq?: string
-          status?: string
-        }
-        Update: {
-          catatan?: string
-          created_at?: string
-          disahkan_oleh_nama?: string
-          disetujui_pada?: string | null
-          edisi?: string
-          id?: string
-          jenis?: string
-          judul?: string
-          lisensi_atau_izin?: string
-          penerbit?: string
-          penulis?: string
-          pentahqiq?: string
-          status?: string
         }
         Relationships: []
       }
@@ -703,13 +598,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      atur_peran_user: {
-        Args: {
-          _roles: Database["public"]["Enums"]["app_role"][]
-          _user: string
-        }
-        Returns: undefined
-      }
       can_read_halaqah: { Args: { _halaqah: string }; Returns: boolean }
       can_read_santri: { Args: { _santri: string }; Returns: boolean }
       can_teach_santri: { Args: { _santri: string }; Returns: boolean }
@@ -745,15 +633,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role:
-        | "admin"
-        | "ustadz"
-        | "badal"
-        | "pengawas"
-        | "wali"
-        | "kepsek"
-        | "tu"
-        | "bendahara"
+      app_role: "admin" | "ustadz" | "badal" | "pengawas" | "wali"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -881,16 +761,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: [
-        "admin",
-        "ustadz",
-        "badal",
-        "pengawas",
-        "wali",
-        "kepsek",
-        "tu",
-        "bendahara",
-      ],
+      app_role: ["admin", "ustadz", "badal", "pengawas", "wali"],
     },
   },
 } as const
