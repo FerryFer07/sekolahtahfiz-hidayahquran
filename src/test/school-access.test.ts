@@ -29,7 +29,7 @@ describe.skipIf(!available)("School RLS", () => {
       },
     },
   };
-  const admin = createClient<Database>(u, k, options);
+  let admin: SupabaseClient<Database>;
   const users: string[] = [];
   const clients: Record<string, SupabaseClient<Database>> = {};
   let h = "",
@@ -37,6 +37,7 @@ describe.skipIf(!available)("School RLS", () => {
     other = "",
     entry = "";
   beforeAll(async () => {
+    admin = createClient<Database>(u, k, options);
     for (const role of ["admin", "ustadz", "wali", "badal", "pengawas"]) {
       const password = crypto.randomUUID() + "A1";
       const email = `rls-${crypto.randomUUID()}@example.com`;
