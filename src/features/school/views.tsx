@@ -35,6 +35,7 @@ import {
   type Role,
 } from "./constants";
 import { createAccount } from "./data.functions";
+import { StudentRegistry, StudentContactCard } from "./students";
 import type { Database } from "@/integrations/supabase/types";
 type Ayat = Database["public"]["Tables"]["quran_ayat"]["Row"];
 export function useSchool() {
@@ -76,7 +77,7 @@ export function useSchool() {
     refresh: () => qc.invalidateQueries({ queryKey: ["school"] }),
   };
 }
-function Notice({ message }: { message: string }) {
+export function Notice({ message }: { message: string }) {
   return message ? (
     <p role="status" className="feedback-note">
       {message}
@@ -800,6 +801,7 @@ export function HistoryView() {
         </label>
       </div>
       <Notice message={message} />
+      {student && <StudentContactCard santriId={student} />}
       {!dates.length ? (
         <div className="empty-state">
           <Clock />
@@ -1358,6 +1360,8 @@ export function AdminView() {
           <Notice message={message} />
           {tab === "quran" ? (
             <QuranImport />
+          ) : tab === "santri" ? (
+            <StudentRegistry />
           ) : (
             <>
               <div className="section-heading">

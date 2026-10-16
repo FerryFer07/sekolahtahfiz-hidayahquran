@@ -23,6 +23,7 @@ export const roleLabels: Record<Role, string> = {
   bendahara: "Bendahara",
   wali: "Wali",
 };
+export const studentStatuses = ["aktif", "pindah", "lulus", "keluar"] as const;
 export const referenceTypes = [
   "mushaf",
   "terjemah",

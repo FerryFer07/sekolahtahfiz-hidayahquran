@@ -920,6 +920,42 @@ hr {
   border-radius: 4px;
   border: 1px solid var(--border);
 }
+.form-grid[hidden] {
+  display: none;
+}
+.form-grid .span-full {
+  grid-column: 1 / -1;
+}
+.private-tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 500;
+}
+.student-contact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+}
+.student-contact h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.student-contact ul {
+  display: grid;
+  gap: 4px;
+}
 .verse-preview {
   background: var(--secondary);
   padding: 18px;

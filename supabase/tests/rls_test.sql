@@ -565,4 +565,96 @@ begin
 end $$;
 reset role;
 
+-- ------------------------------------------------------------------ data induk siswa & santri_pribadi
+insert into public.santri_pribadi(santri_id, nik, nama_ayah, hp_ayah, alamat, catatan_kesehatan) values
+  ('22222222-0000-0000-0000-000000000001', '3174000000000001', 'RLS Ayah A', '081100000001', 'RLS alamat A', 'RLS alergi A'),
+  ('22222222-0000-0000-0000-000000000002', '3174000000000002', 'RLS Ayah B', '081100000002', 'RLS alamat B', 'RLS alergi B'),
+  ('22222222-0000-0000-0000-000000000003', '3174000000000003', 'RLS Ayah Y', '081100000003', 'RLS alamat Y', 'RLS alergi Y');
+
+do $$
+begin
+  perform rls_test.cek(rls_test.ditolak($q$update public.santri_pribadi set nik = '123' where santri_id = '22222222-0000-0000-0000-000000000001'$q$),
+    'NIK harus 16 digit');
+  update public.santri set status = 'pindah' where nis = 'RLS-004';
+  perform rls_test.cek((select not aktif from public.santri where nis = 'RLS-004'), 'status pindah otomatis menonaktifkan santri');
+  update public.santri set status = 'aktif' where nis = 'RLS-004';
+end $$;
+
+-- ustadz X: tidak membaca tabel pribadi; kontak wali hanya untuk santri halaqahnya; tidak melihat kesehatan
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.santri_pribadi') = 0, 'ustadz tidak dapat membaca santri_pribadi (NIK, KK, alamat)');
+  perform rls_test.cek(rls_test.ditolak($q$update public.santri_pribadi set alamat = 'diubah' where santri_id = '22222222-0000-0000-0000-000000000001'$q$),
+    'ustadz tidak dapat mengubah santri_pribadi');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.kontak_wali_santri() where santri_id = '22222222-0000-0000-0000-000000000001' and hp_ayah = '081100000001'$q$) = 1,
+    'ustadz melihat kontak wali santri halaqahnya');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.kontak_wali_santri() where santri_id = '22222222-0000-0000-0000-000000000003'$q$) = 0,
+    'ustadz tidak melihat kontak wali halaqah lain');
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.kesehatan_santri()') = 0, 'ustadz halaqah tidak melihat catatan kesehatan');
+  perform rls_test.cek(rls_test.ditolak($q$update public.santri set status = 'keluar' where nis = 'RLS-001'$q$),
+    'ustadz tidak dapat mengubah status santri');
+end $$;
+reset role;
+
+-- wali A: tidak membaca tabel pribadi; kontak & kesehatan hanya anaknya sendiri
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000e1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.santri_pribadi') = 0, 'wali tidak dapat membaca santri_pribadi');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.kesehatan_santri() where catatan_kesehatan = 'RLS alergi A'$q$) = 1,
+    'wali melihat catatan kesehatan anaknya');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.kesehatan_santri() where santri_id <> '22222222-0000-0000-0000-000000000001'$q$) = 0,
+    'wali tidak melihat catatan kesehatan anak lain');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.kontak_wali_santri() where santri_id = '22222222-0000-0000-0000-000000000002'$q$) = 0,
+    'wali tidak melihat kontak wali lain');
+end $$;
+reset role;
+
+-- pengawas: tidak membaca data pribadi
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000d1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.santri_pribadi') = 0, 'pengawas tidak dapat membaca santri_pribadi');
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.kesehatan_santri()') = 0, 'pengawas tidak melihat catatan kesehatan');
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.kontak_wali_santri()') = 0, 'pengawas tidak melihat kontak wali');
+end $$;
+reset role;
+
+-- tata usaha: kelola data pribadi
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000f2","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.santri_pribadi where nama_ayah like 'RLS %'$q$) = 3, 'tu membaca santri_pribadi');
+  perform rls_test.cek(not rls_test.ditolak($q$insert into public.santri_pribadi(santri_id, nama_ibu)
+    values ('22222222-0000-0000-0000-000000000004', 'RLS Ibu T')$q$), 'tu dapat menambah data pribadi');
+  perform rls_test.cek(not rls_test.ditolak($q$update public.santri set status = 'lulus' where nis = 'RLS-003'$q$), 'tu dapat mengubah status santri');
+end $$;
+reset role;
+
+-- kepala sekolah: baca data pribadi, tidak menulis
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.santri_pribadi where nama_ayah like 'RLS %'$q$) = 3, 'kepsek membaca santri_pribadi');
+  perform rls_test.cek(rls_test.ditolak($q$update public.santri_pribadi set alamat = 'diubah' where santri_id = '22222222-0000-0000-0000-000000000001'$q$),
+    'kepsek tidak dapat mengubah santri_pribadi');
+end $$;
+reset role;
+
+-- anon: fungsi kontak & kesehatan tertutup
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.kontak_wali_santri()') = -1, 'anon tidak dapat memanggil kontak_wali_santri');
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.santri_pribadi') = -1, 'anon tidak dapat membaca santri_pribadi');
+end $$;
+reset role;
+
 rollback;
