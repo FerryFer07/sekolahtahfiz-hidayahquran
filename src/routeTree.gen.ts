@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TentangRouteImport } from './routes/tentang'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedBerandaRouteImport } from './routes/_authenticated/beranda'
+import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticated/kalender'
 import { Route as AuthenticatedPengaturanRouteImport } from './routes/_authenticated/pengaturan'
 import { Route as AuthenticatedPengawasRouteImport } from './routes/_authenticated/pengawas'
 import { Route as AuthenticatedRiwayatRouteImport } from './routes/_authenticated/riwayat'
@@ -50,6 +51,11 @@ const AuthenticatedBerandaRoute = AuthenticatedBerandaRouteImport.update({
   path: '/beranda',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedKalenderRoute = AuthenticatedKalenderRouteImport.update({
+  id: '/kalender',
+  path: '/kalender',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPengaturanRoute = AuthenticatedPengaturanRouteImport.update({
   id: '/pengaturan',
   path: '/pengaturan',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/tentang': typeof TentangRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/beranda': typeof AuthenticatedBerandaRoute
+  '/kalender': typeof AuthenticatedKalenderRoute
   '/pengaturan': typeof AuthenticatedPengaturanRoute
   '/pengawas': typeof AuthenticatedPengawasRoute
   '/riwayat': typeof AuthenticatedRiwayatRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/tentang': typeof TentangRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/beranda': typeof AuthenticatedBerandaRoute
+  '/kalender': typeof AuthenticatedKalenderRoute
   '/pengaturan': typeof AuthenticatedPengaturanRoute
   '/pengawas': typeof AuthenticatedPengawasRoute
   '/riwayat': typeof AuthenticatedRiwayatRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/tentang': typeof TentangRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/beranda': typeof AuthenticatedBerandaRoute
+  '/_authenticated/kalender': typeof AuthenticatedKalenderRoute
   '/_authenticated/pengaturan': typeof AuthenticatedPengaturanRoute
   '/_authenticated/pengawas': typeof AuthenticatedPengawasRoute
   '/_authenticated/riwayat': typeof AuthenticatedRiwayatRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
     | '/tentang'
     | '/admin'
     | '/beranda'
+    | '/kalender'
     | '/pengaturan'
     | '/pengawas'
     | '/riwayat'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/tentang'
     | '/admin'
     | '/beranda'
+    | '/kalender'
     | '/pengaturan'
     | '/pengawas'
     | '/riwayat'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
     | '/tentang'
     | '/_authenticated/admin'
     | '/_authenticated/beranda'
+    | '/_authenticated/kalender'
     | '/_authenticated/pengaturan'
     | '/_authenticated/pengawas'
     | '/_authenticated/riwayat'
@@ -206,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBerandaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/kalender': {
+      id: '/_authenticated/kalender'
+      path: '/kalender'
+      fullPath: '/kalender'
+      preLoaderRoute: typeof AuthenticatedKalenderRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pengaturan': {
       id: '/_authenticated/pengaturan'
       path: '/pengaturan'
@@ -247,6 +266,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBerandaRoute: typeof AuthenticatedBerandaRoute
+  AuthenticatedKalenderRoute: typeof AuthenticatedKalenderRoute
   AuthenticatedPengaturanRoute: typeof AuthenticatedPengaturanRoute
   AuthenticatedPengawasRoute: typeof AuthenticatedPengawasRoute
   AuthenticatedRiwayatRoute: typeof AuthenticatedRiwayatRoute
@@ -256,6 +276,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBerandaRoute: AuthenticatedBerandaRoute,
+  AuthenticatedKalenderRoute: AuthenticatedKalenderRoute,
   AuthenticatedPengaturanRoute: AuthenticatedPengaturanRoute,
   AuthenticatedPengawasRoute: AuthenticatedPengawasRoute,
   AuthenticatedRiwayatRoute: AuthenticatedRiwayatRoute,

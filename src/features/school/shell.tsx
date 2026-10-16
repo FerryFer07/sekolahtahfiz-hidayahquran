@@ -11,6 +11,7 @@ import {
   ArrowUpRight,
   Menu,
   X,
+  CalendarDays,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,16 @@ export function SchoolShell({
                 {n.label}
               </Link>
             ))}
+          {(role === "admin" || role === "ustadz") && (
+            <Link
+              to="/kalender"
+              activeProps={{ className: "active" }}
+              onClick={() => setMenu(false)}
+            >
+              <CalendarDays size={19} />
+              Kalender Sekolah
+            </Link>
+          )}
           {role === "admin" && (
             <Link to="/admin" activeProps={{ className: "active" }}>
               <Users size={19} />

@@ -18,6 +18,7 @@ export const schoolData = createServerFn({ method: "GET" })
       c.from("penugasan_badal").select("*"),
       c.from("wali_santri").select("*"),
       c.from("quran_surah").select("*").order("id"),
+      c.from("kalender_sekolah").select("*").order("tanggal"),
     ]);
     for (const r of results) if (r.error) throw new Error(r.error.message);
     return {
@@ -34,6 +35,7 @@ export const schoolData = createServerFn({ method: "GET" })
       badal: results[9].data ?? [],
       relations: results[10].data ?? [],
       surahs: results[11].data ?? [],
+      calendar: results[12].data ?? [],
     };
   });
 export const createAccount = createServerFn({ method: "POST" })

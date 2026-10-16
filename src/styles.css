@@ -1594,3 +1594,152 @@ td button {
     animation: none !important;
   }
 }
+.off-day-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--soft-gold);
+  color: var(--foreground);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 12px;
+}
+.off-day-label svg {
+  color: var(--gold);
+  flex-shrink: 0;
+}
+.calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+  align-items: start;
+}
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.calendar-toolbar h2 {
+  font-size: 18px;
+  text-transform: capitalize;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.calendar-weekday {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-align: center;
+  padding-bottom: 4px;
+}
+.calendar-day {
+  min-height: 78px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  padding: 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.calendar-day strong {
+  font-size: 12px;
+  color: var(--foreground);
+}
+.calendar-day.is-off {
+  background: var(--muted);
+}
+.calendar-day.is-off strong {
+  color: var(--muted-foreground);
+}
+.calendar-day.is-today strong {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.calendar-day.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.calendar-chip {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--secondary);
+  color: var(--primary);
+}
+.calendar-chip.libur {
+  background: oklch(0.95 0.03 25);
+  color: var(--destructive);
+}
+.calendar-chip.ujian_sekolah {
+  background: var(--soft-gold);
+  color: oklch(0.5 0.09 80);
+}
+.calendar-panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  padding: 20px;
+}
+.calendar-panel > h3 {
+  font-size: 15px;
+}
+.calendar-status {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin: 4px 0 14px;
+}
+.calendar-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
+  font-size: 12px;
+}
+.calendar-entry small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.calendar-panel .form-grid {
+  grid-template-columns: 1fr;
+}
+@media (max-width: 1100px) {
+  .calendar-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .calendar-grid {
+    gap: 3px;
+  }
+  .calendar-day {
+    min-height: 54px;
+    padding: 5px;
+  }
+  .calendar-chip {
+    font-size: 0;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}

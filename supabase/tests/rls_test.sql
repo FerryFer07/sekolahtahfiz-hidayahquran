@@ -113,7 +113,7 @@ begin
 
   for t in select tablename || '.' || policyname from pg_policies
            where schemaname = 'public' and (qual = 'true' or with_check = 'true')
-             and tablename not in ('pengaturan_sekolah', 'periode', 'quran_surah', 'quran_ayat') loop
+             and tablename not in ('pengaturan_sekolah', 'periode', 'quran_surah', 'quran_ayat', 'kalender_sekolah') loop
     perform rls_test.cek(false, format('tidak ada policy USING(true) di luar data referensi: %s', t));
   end loop;
   perform rls_test.cek(true, 'policy USING(true) hanya pada data referensi (baca, authenticated)');
@@ -322,6 +322,93 @@ begin
   perform rls_test.cek(not rls_test.ditolak($q$update public.santri set nama = 'Anak A (admin)'
     where id = '22222222-0000-0000-0000-000000000001'$q$),
     'admin dapat mengubah data induk santri');
+end $$;
+reset role;
+
+-- ------------------------------------------------------------------ kalender sekolah & hari efektif
+-- Pekan 19–25 Okt 2026 (Senin–Minggu) tanpa libur umum; pekan 26 Okt–1 Nov dengan libur umum Rabu 28 Okt.
+-- Halaqah Y punya kegiatan khusus Kamis 22 Okt. Anak A sakit Selasa 20 Okt; Anak B alpa Rabu 21 Okt.
+insert into public.kalender_sekolah(tanggal, jenis, keterangan, halaqah_id, dibuat_oleh) values
+  ('2026-10-28', 'libur', 'RLS libur umum', null, '00000000-0000-0000-0000-0000000000a1'),
+  ('2026-10-22', 'kegiatan', 'RLS kegiatan halaqah Y', '11111111-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000b2');
+insert into public.kehadiran(santri_id, tanggal, status, dicatat_oleh) values
+  ('22222222-0000-0000-0000-000000000001', '2026-10-20', 'sakit', '00000000-0000-0000-0000-0000000000b1'),
+  ('22222222-0000-0000-0000-000000000002', '2026-10-21', 'alpa', '00000000-0000-0000-0000-0000000000b1');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek((select count(*) from public.hari_efektif('11111111-0000-0000-0000-000000000001', '2026-10-19', '2026-10-25')) = 5,
+    'hari_efektif = 5 untuk pekan normal Senin–Jumat');
+  perform rls_test.cek((select count(*) from public.hari_efektif('11111111-0000-0000-0000-000000000001', '2026-10-26', '2026-11-01')) = 4,
+    'hari_efektif = 4 bila ada 1 libur umum');
+  perform rls_test.cek((select count(*) from public.hari_efektif('11111111-0000-0000-0000-000000000002', '2026-10-19', '2026-10-25')) = 4,
+    'kegiatan khusus halaqah Y mengurangi hari efektif halaqah Y');
+  perform rls_test.cek(public.hari_hadir_efektif('22222222-0000-0000-0000-000000000001', '2026-10-19', '2026-10-25') = 4,
+    'santri sakit 1 hari mendapat hari_hadir_efektif 4');
+  perform rls_test.cek(public.hari_hadir_efektif('22222222-0000-0000-0000-000000000002', '2026-10-19', '2026-10-25') = 5,
+    'alpa tidak mengurangi hari_hadir_efektif secara bawaan');
+  perform rls_test.cek(not rls_test.ditolak($q$insert into public.kalender_sekolah(tanggal, jenis, halaqah_id, dibuat_oleh)
+    values ('2026-11-02', 'ujian_sekolah', null, '00000000-0000-0000-0000-0000000000a1')$q$),
+    'admin dapat menambah kalender umum');
+end $$;
+reset role;
+
+update public.pengaturan_sekolah set alpa_kurangi_target = true where id = 1;
+insert into public.pengaturan_sekolah(id, alpa_kurangi_target) select 1, true
+where not exists (select 1 from public.pengaturan_sekolah where id = 1);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(public.hari_hadir_efektif('22222222-0000-0000-0000-000000000002', '2026-10-19', '2026-10-25') = 4,
+    'alpa mengurangi hari_hadir_efektif bila alpa_kurangi_target aktif');
+end $$;
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(not rls_test.ditolak($q$insert into public.kalender_sekolah(tanggal, jenis, halaqah_id, dibuat_oleh)
+    values ('2026-11-03', 'kegiatan', '11111111-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1')$q$),
+    'ustadz X dapat menambah kegiatan halaqah X');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.kalender_sekolah(tanggal, jenis, halaqah_id, dibuat_oleh)
+    values ('2026-11-03', 'kegiatan', '11111111-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000b1')$q$),
+    'ustadz X tidak dapat menambah kalender halaqah Y');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.kalender_sekolah(tanggal, jenis, halaqah_id, dibuat_oleh)
+    values ('2026-11-03', 'libur', null, '00000000-0000-0000-0000-0000000000b1')$q$),
+    'ustadz tidak dapat menambah kalender umum');
+  perform rls_test.cek(rls_test.ditolak($q$delete from public.kalender_sekolah where keterangan = 'RLS kegiatan halaqah Y'$q$),
+    'ustadz X tidak dapat menghapus kalender halaqah Y');
+  perform rls_test.cek(rls_test.ditolak($q$delete from public.kalender_sekolah where keterangan = 'RLS libur umum'$q$),
+    'ustadz tidak dapat menghapus libur umum');
+end $$;
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000e1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.kalender_sekolah where keterangan like 'RLS %'$q$) = 2,
+    'wali dapat membaca kalender sekolah');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.kalender_sekolah(tanggal, jenis, halaqah_id, dibuat_oleh)
+    values ('2026-11-04', 'libur', null, '00000000-0000-0000-0000-0000000000e1')$q$),
+    'wali tidak dapat menambah kalender');
+  perform rls_test.cek(public.hari_hadir_efektif('22222222-0000-0000-0000-000000000002', '2026-10-19', '2026-10-25') is null,
+    'wali A tidak mendapat hari_hadir_efektif anak wali B');
+end $$;
+reset role;
+
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.kalender_sekolah') = -1,
+    'anon tidak dapat membaca kalender sekolah');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.hari_efektif(null, '2026-10-19', '2026-10-25')$q$) = -1,
+    'anon tidak dapat menjalankan hari_efektif');
 end $$;
 reset role;
 

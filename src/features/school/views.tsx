@@ -14,12 +14,15 @@ import {
   ShieldCheck,
   MapPin,
   GraduationCap,
+  ChevronLeft,
+  ChevronRight,
+  CalendarOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { schoolQuery } from "./queries";
 import { SchoolShell } from "./shell";
-import { jakartaDate, schoolName, schoolAddress } from "./constants";
+import { jakartaDate, schoolName, schoolAddress, calendarTypes, isEffectiveDay } from "./constants";
 import { createAccount } from "./data.functions";
 import type { Database } from "@/integrations/supabase/types";
 type Ayat = Database["public"]["Tables"]["quran_ayat"]["Row"];
@@ -112,6 +115,14 @@ export function HomeView() {
   const entries = [...data.entries, ...data.iqro].filter((e) => e.tanggal === date);
   const attending = data.attendance.filter((a) => a.tanggal === date && a.status === "hadir");
   const writable = ["admin", "ustadz", "badal"].includes(role || "");
+  const today = jakartaDate();
+  const halaqahIds = data.halaqah.map((h) => h.id);
+  const offToday =
+    (role === "ustadz" || role === "badal") &&
+    !isEffectiveDay(today, data.settings[0]?.hari_sekolah, data.calendar, halaqahIds);
+  const offReason = data.calendar.find(
+    (k) => k.tanggal === today && (k.halaqah_id === null || halaqahIds.includes(k.halaqah_id)),
+  );
   async function attendance(id: string, status: string) {
     const r = await supabase
       .from("kehadiran")
@@ -131,6 +142,17 @@ export function HomeView() {
           : "Semoga Allah memberkahi pendampingan hafalan hari ini."
       }
     >
+      {offToday && (
+        <p role="status" className="off-day-label">
+          <CalendarOff size={17} />
+          Hari ini bukan hari efektif
+          {offReason
+            ? ` · ${calendarTypes[offReason.jenis as keyof typeof calendarTypes] ?? offReason.jenis}${
+                offReason.keterangan ? `: ${offReason.keterangan}` : ""
+              }`
+            : " · di luar hari sekolah"}
+        </p>
+      )}
       <div className="welcome-band">
         <div>
           <span className="eyebrow">BERSAMA AL-QUR’AN</span>
@@ -1039,6 +1061,7 @@ export function AdminView() {
         "putaran_manzil_hari",
         "putaran_sabqi_hari",
         "hari_sekolah",
+        "alpa_kurangi_target",
       ],
       rows: data.settings,
     },
@@ -1074,6 +1097,7 @@ export function AdminView() {
     putaran_manzil_hari: "Putaran Manzil (hari)",
     putaran_sabqi_hari: "Putaran Sabaqi (hari)",
     hari_sekolah: "Hari sekolah (pisahkan dengan koma)",
+    alpa_kurangi_target: "Alpa mengurangi target",
     email: "Email",
     password: "Kata sandi awal",
     role: "Peran",
@@ -1087,6 +1111,8 @@ export function AdminView() {
       if (k in values) values[k] = Number(values[k]);
     for (const k of ["ustadz_id", "pengawas_id", "halaqah_id"])
       if (values[k] === "") values[k] = null;
+    if ("alpa_kurangi_target" in values)
+      values["alpa_kurangi_target"] = values["alpa_kurangi_target"] === "true";
     if ("hari_sekolah" in values)
       values["hari_sekolah"] = String(values["hari_sekolah"])
         .split(",")
@@ -1134,6 +1160,11 @@ export function AdminView() {
   function options(k: string) {
     if (k === "jalur") return ["tahfidz", "iqro"].map((v) => ({ id: v, nama: v }));
     if (k === "satuan_default") return ["baris", "halaman"].map((v) => ({ id: v, nama: v }));
+    if (k === "alpa_kurangi_target")
+      return [
+        { id: "false", nama: "Tidak (alpa tetap dihitung hari wajib)" },
+        { id: "true", nama: "Ya" },
+      ];
     if (k === "semester") return ["1", "2"].map((v) => ({ id: v, nama: v }));
     if (k === "role")
       return ["admin", "ustadz", "badal", "pengawas", "wali"].map((v) => ({ id: v, nama: v }));
@@ -1223,7 +1254,9 @@ export function AdminView() {
                                   ? 15
                                   : k === "putaran_sabqi_hari"
                                     ? 5
-                                    : "");
+                                    : k === "alpa_kurangi_target"
+                                      ? false
+                                      : "");
                         return (
                           <label key={k}>
                             {labels[k]}
@@ -1476,5 +1509,234 @@ function QuranImport() {
       )}
       <Notice message={message} />
     </section>
+  );
+}
+type CalendarRow = Database["public"]["Tables"]["kalender_sekolah"]["Row"];
+const weekdayLabels = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+export function CalendarView() {
+  const { data, role, refresh } = useSchool();
+  const today = jakartaDate();
+  const [month, setMonth] = useState(today.slice(0, 7));
+  const [selected, setSelected] = useState(today);
+  const [editing, setEditing] = useState<CalendarRow | null>(null);
+  const [message, setMessage] = useState("");
+  const admin = role === "admin";
+  const own = data.halaqah.filter((h) => h.ustadz_id === data.userId);
+  const ownIds = own.map((h) => h.id);
+  const canEdit = (k: CalendarRow) =>
+    admin || (role === "ustadz" && k.halaqah_id !== null && ownIds.includes(k.halaqah_id));
+  const visible = (k: CalendarRow) =>
+    admin || k.halaqah_id === null || ownIds.includes(k.halaqah_id);
+  const [year, monthIndex] = month.split("-").map(Number) as [number, number];
+  const first = new Date(Date.UTC(year, monthIndex - 1, 1));
+  const daysInMonth = new Date(Date.UTC(year, monthIndex, 0)).getUTCDate();
+  const lead = (first.getUTCDay() + 6) % 7;
+  const cells = [
+    ...Array.from({ length: lead }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`),
+  ];
+  const schoolDays = data.settings[0]?.hari_sekolah;
+  const shift = (n: number) => {
+    const d = new Date(Date.UTC(year, monthIndex - 1 + n, 1));
+    setMonth(d.toISOString().slice(0, 7));
+  };
+  const dayEntries = data.calendar.filter((k) => k.tanggal === selected && visible(k));
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setMessage("");
+    const f = new FormData(e.currentTarget);
+    const values = {
+      tanggal: selected,
+      jenis: admin ? String(f.get("jenis")) : "kegiatan",
+      keterangan: String(f.get("keterangan") || ""),
+      halaqah_id: String(f.get("halaqah_id") || "") || null,
+    };
+    const r = editing
+      ? await supabase.from("kalender_sekolah").update(values).eq("id", editing.id)
+      : await supabase.from("kalender_sekolah").insert({ ...values, dibuat_oleh: data.userId });
+    if (r.error) return setMessage(r.error.message);
+    setMessage("Kalender berhasil disimpan.");
+    setEditing(null);
+    e.currentTarget?.reset();
+    await refresh();
+  }
+  async function remove(k: CalendarRow) {
+    setMessage("");
+    const r = await supabase.from("kalender_sekolah").delete().eq("id", k.id);
+    if (r.error) setMessage(r.error.message);
+    else await refresh();
+  }
+  return (
+    <ProtectedPage
+      title="Kalender sekolah"
+      subtitle="Libur, ujian sekolah, dan kegiatan yang mengurangi hari efektif setoran."
+    >
+      {!admin && role !== "ustadz" ? (
+        <p>Akses admin atau ustadz diperlukan.</p>
+      ) : (
+        <div className="calendar-layout">
+          <section>
+            <div className="calendar-toolbar">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Bulan sebelumnya"
+                onClick={() => shift(-1)}
+              >
+                <ChevronLeft />
+              </Button>
+              <h2>
+                {new Intl.DateTimeFormat("id-ID", {
+                  month: "long",
+                  year: "numeric",
+                  timeZone: "UTC",
+                }).format(first)}
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Bulan berikutnya"
+                onClick={() => shift(1)}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+            <div className="calendar-grid">
+              {weekdayLabels.map((d) => (
+                <span key={d} className="calendar-weekday">
+                  {d}
+                </span>
+              ))}
+              {cells.map((date, i) => {
+                if (!date) return <span key={`blank-${i}`} />;
+                const entries = data.calendar.filter((k) => k.tanggal === date && visible(k));
+                const effective = isEffectiveDay(
+                  date,
+                  schoolDays,
+                  data.calendar,
+                  admin ? [] : ownIds,
+                );
+                return (
+                  <button
+                    type="button"
+                    key={date}
+                    className={`calendar-day${date === selected ? " is-selected" : ""}${
+                      effective ? "" : " is-off"
+                    }${date === today ? " is-today" : ""}`}
+                    onClick={() => {
+                      setSelected(date);
+                      setEditing(null);
+                      setMessage("");
+                    }}
+                  >
+                    <strong>{Number(date.slice(8))}</strong>
+                    {entries.map((k) => (
+                      <small key={k.id} className={`calendar-chip ${k.jenis}`}>
+                        {calendarTypes[k.jenis as keyof typeof calendarTypes] ?? k.jenis}
+                      </small>
+                    ))}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+          <section className="calendar-panel">
+            <h3>
+              {new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeZone: "UTC" }).format(
+                new Date(`${selected}T00:00:00Z`),
+              )}
+            </h3>
+            <p className="calendar-status">
+              {isEffectiveDay(selected, schoolDays, data.calendar, admin ? [] : ownIds)
+                ? "Hari efektif"
+                : "Bukan hari efektif"}
+            </p>
+            {dayEntries.map((k) => (
+              <div className="calendar-entry" key={k.id}>
+                <span className={`calendar-chip ${k.jenis}`}>
+                  {calendarTypes[k.jenis as keyof typeof calendarTypes] ?? k.jenis}
+                </span>
+                <div>
+                  <strong>{k.keterangan || "Tanpa keterangan"}</strong>
+                  <small>
+                    {k.halaqah_id
+                      ? data.halaqah.find((h) => h.id === k.halaqah_id)?.nama || "Halaqah"
+                      : "Semua halaqah"}
+                  </small>
+                </div>
+                {canEdit(k) && (
+                  <span>
+                    <Button variant="ghost" onClick={() => setEditing(k)}>
+                      Ubah
+                    </Button>
+                    <Button variant="ghost" onClick={() => remove(k)}>
+                      Hapus
+                    </Button>
+                  </span>
+                )}
+              </div>
+            ))}
+            {admin || own.length ? (
+              <form className="admin-form" key={editing?.id || selected} onSubmit={save}>
+                <h3>
+                  {editing ? "Ubah agenda" : admin ? "Tambah agenda" : "Tambah kegiatan halaqah"}
+                </h3>
+                <div className="form-grid">
+                  {admin && (
+                    <label>
+                      Jenis
+                      <select name="jenis" defaultValue={editing?.jenis || "libur"} required>
+                        {Object.entries(calendarTypes).map(([v, l]) => (
+                          <option key={v} value={v}>
+                            {l}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label>
+                    Berlaku untuk
+                    <select
+                      name="halaqah_id"
+                      defaultValue={editing?.halaqah_id || (admin ? "" : own[0]?.id)}
+                      required={!admin}
+                    >
+                      {admin && <option value="">Semua halaqah</option>}
+                      {(admin ? data.halaqah : own).map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {h.nama}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Keterangan
+                    <input
+                      name="keterangan"
+                      defaultValue={editing?.keterangan || ""}
+                      placeholder="Contoh: Libur Maulid Nabi"
+                    />
+                  </label>
+                </div>
+                <div className="form-actions">
+                  <Button>
+                    <Check />
+                    Simpan
+                  </Button>
+                  {editing && (
+                    <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+                      Batal
+                    </Button>
+                  )}
+                </div>
+              </form>
+            ) : (
+              <p>Belum ada halaqah yang Anda ampu.</p>
+            )}
+            <Notice message={message} />
+          </section>
+        </div>
+      )}
+    </ProtectedPage>
   );
 }
