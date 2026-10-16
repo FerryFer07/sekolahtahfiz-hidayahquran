@@ -19,6 +19,7 @@ import { Route as AuthenticatedPengaturanRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPengawasRouteImport } from './routes/_authenticated/pengawas'
 import { Route as AuthenticatedRiwayatRouteImport } from './routes/_authenticated/riwayat'
 import { Route as AuthenticatedSetoranRouteImport } from './routes/_authenticated/setoran'
+import { Route as ApiMigrateHelperRouteImport } from './routes/api/migrate-helper'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,6 +70,11 @@ const AuthenticatedSetoranRoute = AuthenticatedSetoranRouteImport.update({
   path: '/setoran',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiMigrateHelperRoute = ApiMigrateHelperRouteImport.update({
+  id: '/api/migrate-helper',
+  path: '/api/migrate-helper',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/pengawas': typeof AuthenticatedPengawasRoute
   '/riwayat': typeof AuthenticatedRiwayatRoute
   '/setoran': typeof AuthenticatedSetoranRoute
+  '/api/migrate-helper': typeof ApiMigrateHelperRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/pengawas': typeof AuthenticatedPengawasRoute
   '/riwayat': typeof AuthenticatedRiwayatRoute
   '/setoran': typeof AuthenticatedSetoranRoute
+  '/api/migrate-helper': typeof ApiMigrateHelperRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/pengawas': typeof AuthenticatedPengawasRoute
   '/_authenticated/riwayat': typeof AuthenticatedRiwayatRoute
   '/_authenticated/setoran': typeof AuthenticatedSetoranRoute
+  '/api/migrate-helper': typeof ApiMigrateHelperRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/pengawas'
     | '/riwayat'
     | '/setoran'
+    | '/api/migrate-helper'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/pengawas'
     | '/riwayat'
     | '/setoran'
+    | '/api/migrate-helper'
   id:
     | '__root__'
     | '/'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pengawas'
     | '/_authenticated/riwayat'
     | '/_authenticated/setoran'
+    | '/api/migrate-helper'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -147,6 +159,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   TentangRoute: typeof TentangRoute
+  ApiMigrateHelperRoute: typeof ApiMigrateHelperRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSetoranRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/migrate-helper': {
+      id: '/api/migrate-helper'
+      path: '/api/migrate-helper'
+      fullPath: '/api/migrate-helper'
+      preLoaderRoute: typeof ApiMigrateHelperRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   TentangRoute: TentangRoute,
+  ApiMigrateHelperRoute: ApiMigrateHelperRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
