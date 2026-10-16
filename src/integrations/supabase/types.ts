@@ -53,51 +53,6 @@ export type Database = {
           },
         ]
       }
-      kalender_sekolah: {
-        Row: {
-          created_at: string
-          dibuat_oleh: string
-          halaqah_id: string | null
-          id: string
-          jenis: string
-          keterangan: string
-          tanggal: string
-        }
-        Insert: {
-          created_at?: string
-          dibuat_oleh?: string
-          halaqah_id?: string | null
-          id?: string
-          jenis: string
-          keterangan?: string
-          tanggal: string
-        }
-        Update: {
-          created_at?: string
-          dibuat_oleh?: string
-          halaqah_id?: string | null
-          id?: string
-          jenis?: string
-          keterangan?: string
-          tanggal?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "kalender_sekolah_dibuat_oleh_fkey"
-            columns: ["dibuat_oleh"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "kalender_sekolah_halaqah_id_fkey"
-            columns: ["halaqah_id"]
-            isOneToOne: false
-            referencedRelation: "halaqah"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       kehadiran: {
         Row: {
           dicatat_oleh: string
@@ -140,7 +95,6 @@ export type Database = {
       pengaturan_sekolah: {
         Row: {
           alamat: string
-          alpa_kurangi_target: boolean
           hari_sekolah: string[]
           id: number
           kepala_sekolah: string
@@ -152,7 +106,6 @@ export type Database = {
         }
         Insert: {
           alamat?: string
-          alpa_kurangi_target?: boolean
           hari_sekolah?: string[]
           id?: number
           kepala_sekolah?: string
@@ -164,7 +117,6 @@ export type Database = {
         }
         Update: {
           alamat?: string
-          alpa_kurangi_target?: boolean
           hari_sekolah?: string[]
           id?: number
           kepala_sekolah?: string
@@ -602,14 +554,6 @@ export type Database = {
       can_read_santri: { Args: { _santri: string }; Returns: boolean }
       can_teach_santri: { Args: { _santri: string }; Returns: boolean }
       consent_ready: { Args: never; Returns: boolean }
-      hari_efektif: {
-        Args: { p_halaqah_id: string | null; p_mulai: string; p_selesai: string }
-        Returns: string[]
-      }
-      hari_hadir_efektif: {
-        Args: { p_mulai: string; p_santri_id: string; p_selesai: string }
-        Returns: number
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
