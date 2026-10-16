@@ -603,7 +603,7 @@ export type Database = {
       can_teach_santri: { Args: { _santri: string }; Returns: boolean }
       consent_ready: { Args: never; Returns: boolean }
       hari_efektif: {
-        Args: { p_halaqah_id: string | null; p_mulai: string; p_selesai: string }
+        Args: { p_halaqah_id: string; p_mulai: string; p_selesai: string }
         Returns: string[]
       }
       hari_hadir_efektif: {
