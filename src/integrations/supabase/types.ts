@@ -851,7 +851,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      owns_child: { Args: { _santri: string }; Returns: boolean }
       kesehatan_santri: {
         Args: never
         Returns: {
@@ -874,6 +873,7 @@ export type Database = {
           santri_id: string
         }[]
       }
+      owns_child: { Args: { _santri: string }; Returns: boolean }
       set_user_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"]; _user: string }
         Returns: undefined
