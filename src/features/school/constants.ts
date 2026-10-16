@@ -1,7 +1,44 @@
 export const schoolName = "Sekolah Tahfidz Hidayah Qur'an";
 export const schoolAddress =
   "Jl. Jahari No.36A, RT.4/RW.7, Sukabumi Sel., Kec. Kb. Jeruk, Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta 11560";
-export const roles = ["admin", "ustadz", "badal", "pengawas", "wali"] as const;
+/** Urutan = prioritas tampilan bila satu akun memegang beberapa peran. */
+export const roles = [
+  "admin",
+  "kepsek",
+  "tu",
+  "ustadz",
+  "badal",
+  "pengawas",
+  "bendahara",
+  "wali",
+] as const;
+export type Role = (typeof roles)[number];
+export const roleLabels: Record<Role, string> = {
+  admin: "Admin",
+  kepsek: "Kepala sekolah",
+  tu: "Tata usaha",
+  ustadz: "Ustadz",
+  badal: "Badal",
+  pengawas: "Pengawas",
+  bendahara: "Bendahara",
+  wali: "Wali",
+};
+export const referenceTypes = [
+  "mushaf",
+  "terjemah",
+  "tafsir",
+  "hadits",
+  "tajwid",
+  "lainnya",
+] as const;
+export const tajwidGroups = [
+  "mad",
+  "nun_mim_sukun",
+  "ghunnah",
+  "qalqalah",
+  "lam",
+  "lainnya",
+] as const;
 export function jakartaDate(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",

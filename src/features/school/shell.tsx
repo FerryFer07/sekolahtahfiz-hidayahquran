@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/sthq-logo.png";
 import { schoolQuery } from "./queries";
+import { roles, roleLabels } from "./constants";
 export function SchoolShell({
   children,
   title,
@@ -30,7 +31,10 @@ export function SchoolShell({
   const { data } = useSuspenseQuery(schoolQuery);
   const [menu, setMenu] = useState(false);
   const me = data.profiles.find((p) => p.id === data.userId);
-  const role = data.roles.find((r) => r.user_id === data.userId)?.role;
+  const myRoles = roles.filter((r) =>
+    data.roles.some((x) => x.user_id === data.userId && x.role === r),
+  );
+  const has = (...r: (typeof roles)[number][]) => r.some((x) => myRoles.includes(x));
   const nav = [
     { to: "/beranda", label: "Beranda", icon: House },
     { to: "/setoran", label: "Input setoran", icon: BookOpen },
@@ -58,7 +62,7 @@ export function SchoolShell({
         <div className="sidebar-label">RUANG MUTABA’AH</div>
         <nav>
           {nav
-            .filter((n) => n.to != "/setoran" || role !== "pengawas")
+            .filter((n) => n.to != "/setoran" || has("admin", "ustadz", "badal", "wali"))
             .map((n) => (
               <Link
                 key={n.to}
@@ -70,7 +74,7 @@ export function SchoolShell({
                 {n.label}
               </Link>
             ))}
-          {(role === "admin" || role === "ustadz") && (
+          {has("admin", "ustadz") && (
             <Link
               to="/kalender"
               activeProps={{ className: "active" }}
@@ -80,13 +84,13 @@ export function SchoolShell({
               Kalender Sekolah
             </Link>
           )}
-          {role === "admin" && (
+          {has("admin", "tu") && (
             <Link to="/admin" activeProps={{ className: "active" }}>
               <Users size={19} />
               Administrasi
             </Link>
           )}
-          {(role === "pengawas" || role === "admin") && (
+          {has("pengawas", "admin", "kepsek") && (
             <Link to="/pengawas" activeProps={{ className: "active" }}>
               <ShieldCheck size={19} />
               Pengawasan
@@ -108,7 +112,7 @@ export function SchoolShell({
           <span className="avatar">{me?.nama?.slice(0, 1) || "A"}</span>
           <span>
             {me?.nama || "Akun sekolah"}
-            <small>{role || "Menunggu peran"}</small>
+            <small>{myRoles.map((r) => roleLabels[r]).join(" · ") || "Menunggu peran"}</small>
           </span>
           <Button
             variant="ghost"

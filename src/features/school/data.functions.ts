@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { roles } from "./constants";
 export const schoolData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -19,6 +20,8 @@ export const schoolData = createServerFn({ method: "GET" })
       c.from("wali_santri").select("*"),
       c.from("quran_surah").select("*").order("id"),
       c.from("kalender_sekolah").select("*").order("tanggal"),
+      c.from("rujukan").select("*").order("created_at"),
+      c.from("hukum_tajwid").select("*").order("kelompok"),
     ]);
     for (const r of results) if (r.error) throw new Error(r.error.message);
     return {
@@ -36,6 +39,8 @@ export const schoolData = createServerFn({ method: "GET" })
       relations: results[10].data ?? [],
       surahs: results[11].data ?? [],
       calendar: results[12].data ?? [],
+      references: results[13].data ?? [],
+      tajwid: results[14].data ?? [],
     };
   });
 export const createAccount = createServerFn({ method: "POST" })
@@ -45,7 +50,7 @@ export const createAccount = createServerFn({ method: "POST" })
       email: z.string().email(),
       nama: z.string().min(1),
       password: z.string().min(8),
-      role: z.enum(["admin", "ustadz", "badal", "pengawas", "wali"]),
+      roles: z.array(z.enum(roles)).min(1),
     }),
   )
   .handler(async ({ context, data }) => {
@@ -65,7 +70,7 @@ export const createAccount = createServerFn({ method: "POST" })
     if (!result.data.user) throw new Error("Akun tidak dibuat");
     const role = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: result.data.user.id, role: data.role });
+      .insert(data.roles.map((role) => ({ user_id: result.data.user.id, role })));
     if (role.error) {
       await supabaseAdmin.auth.admin.deleteUser(result.data.user.id);
       throw new Error(role.error.message);

@@ -896,6 +896,30 @@ hr {
   flex-shrink: 0;
   margin-top: 3px;
 }
+.role-picker {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+.role-picker legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+.color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.color-chip i {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
 .verse-preview {
   background: var(--secondary);
   padding: 18px;

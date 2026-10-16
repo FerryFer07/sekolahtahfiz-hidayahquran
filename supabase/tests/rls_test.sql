@@ -73,9 +73,13 @@ insert into public.penugasan_badal(halaqah_id, ustadz_id, mulai, selesai) values
 
 insert into public.quran_surah(id, nama_latin, nama_arab, jumlah_ayat) values (1, 'Al-Fatihah', 'الفاتحة', 7)
 on conflict (id) do nothing;
-insert into public.quran_ayat(id, surah, ayat, juz, halaman, baris_awal, baris_akhir, teks_utsmani) values
-  (1, 1, 1, 1, 1, 1, 1, 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'),
-  (2, 1, 2, 1, 1, 2, 2, 'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ')
+-- Rujukan uji: satu disetujui (dipakai fixture ayat), satu masih usulan.
+insert into public.rujukan(id, jenis, judul, status, disahkan_oleh_nama) values
+  ('44444444-0000-0000-0000-000000000001', 'mushaf', 'RLS Mushaf disetujui', 'disetujui', 'Ustadz Penguji'),
+  ('44444444-0000-0000-0000-000000000002', 'mushaf', 'RLS Mushaf usulan', 'usulan', '');
+insert into public.quran_ayat(id, surah, ayat, juz, halaman, baris_awal, baris_akhir, teks_utsmani, rujukan_id) values
+  (1, 1, 1, 1, 1, 1, 1, 'RLS teks uji 1', '44444444-0000-0000-0000-000000000001'),
+  (2, 1, 2, 1, 1, 2, 2, 'RLS teks uji 2', '44444444-0000-0000-0000-000000000001')
 on conflict (id) do nothing;
 
 -- anak A & anak T milik wali A; anak B milik wali B (ketiganya di halaqah X); anak Y di halaqah Y.
@@ -113,7 +117,7 @@ begin
 
   for t in select tablename || '.' || policyname from pg_policies
            where schemaname = 'public' and (qual = 'true' or with_check = 'true')
-             and tablename not in ('pengaturan_sekolah', 'periode', 'quran_surah', 'quran_ayat', 'kalender_sekolah') loop
+             and tablename not in ('pengaturan_sekolah', 'periode', 'quran_surah', 'quran_ayat', 'kalender_sekolah', 'rujukan', 'hukum_tajwid') loop
     perform rls_test.cek(false, format('tidak ada policy USING(true) di luar data referensi: %s', t));
   end loop;
   perform rls_test.cek(true, 'policy USING(true) hanya pada data referensi (baca, authenticated)');
@@ -409,6 +413,155 @@ begin
     'anon tidak dapat membaca kalender sekolah');
   perform rls_test.cek(rls_test.jumlah($q$select 1 from public.hari_efektif(null, '2026-10-19', '2026-10-25')$q$) = -1,
     'anon tidak dapat menjalankan hari_efektif');
+end $$;
+reset role;
+
+-- ------------------------------------------------------------------ fondasi: multi-peran, kepsek, tu, rujukan & hukum tajwid
+insert into auth.users(id, email) values
+  ('00000000-0000-0000-0000-0000000000f1', 'rls-kepsek@example.test'),
+  ('00000000-0000-0000-0000-0000000000f2', 'rls-tu@example.test'),
+  ('00000000-0000-0000-0000-0000000000f3', 'rls-ustadz-wali@example.test');
+insert into public.user_roles(user_id, role) values
+  ('00000000-0000-0000-0000-0000000000f1', 'kepsek'),
+  ('00000000-0000-0000-0000-0000000000f2', 'tu'),
+  ('00000000-0000-0000-0000-0000000000f3', 'ustadz'),
+  ('00000000-0000-0000-0000-0000000000f3', 'wali');
+update public.profiles set persetujuan_data_pada = now() where id = '00000000-0000-0000-0000-0000000000f3';
+-- Ustadz-wali: mengampu halaqah Y dan wali dari anak B (halaqah X).
+update public.halaqah set ustadz_id = '00000000-0000-0000-0000-0000000000f3' where id = '11111111-0000-0000-0000-000000000002';
+insert into public.wali_santri(wali_id, santri_id) values
+  ('00000000-0000-0000-0000-0000000000f3', '22222222-0000-0000-0000-000000000002');
+
+do $$
+begin
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.quran_ayat(id, surah, ayat, juz, halaman, baris_awal, baris_akhir, teks_utsmani)
+    values (3, 1, 3, 1, 1, 3, 3, 'RLS teks uji 3')$q$),
+    'ayat tanpa rujukan ditolak (juga untuk pemilik database)');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.quran_ayat(id, surah, ayat, juz, halaman, baris_awal, baris_akhir, teks_utsmani, rujukan_id)
+    values (3, 1, 3, 1, 1, 3, 3, 'RLS teks uji 3', '44444444-0000-0000-0000-000000000002')$q$),
+    'ayat dengan rujukan berstatus usulan ditolak');
+  perform rls_test.cek(rls_test.ditolak($q$update public.hukum_tajwid set penjelasan = 'RLS penjelasan' where kode = 'ikhafa'$q$),
+    'penjelasan hukum tajwid tanpa rujukan ditolak');
+  perform rls_test.cek(not rls_test.ditolak($q$update public.hukum_tajwid set penjelasan = 'RLS penjelasan', rujukan_id = '44444444-0000-0000-0000-000000000001' where kode = 'ikhafa'$q$),
+    'penjelasan hukum tajwid dengan rujukan disetujui diterima');
+  perform rls_test.cek(rls_test.ditolak($q$update public.rujukan set status = 'ditolak' where id = '44444444-0000-0000-0000-000000000001'$q$),
+    'rujukan yang masih dipakai konten tidak dapat dibatalkan');
+  perform rls_test.cek(rls_test.ditolak($q$update public.rujukan set status = 'disetujui', disahkan_oleh_nama = '' where id = '44444444-0000-0000-0000-000000000002'$q$),
+    'pengesahan rujukan wajib mencantumkan nama ustadz pengesah');
+  perform rls_test.cek((select disetujui_pada is not null from public.rujukan where id = '44444444-0000-0000-0000-000000000001'),
+    'tanggal pengesahan rujukan terisi otomatis');
+  perform rls_test.cek((select count(*) from public.hukum_tajwid where penjelasan = '' and bait_matan = '' and contoh = '' and kode <> 'ikhafa') = 16,
+    'isi awal hukum tajwid tanpa penjelasan karangan');
+end $$;
+
+-- ustadz X: data referensi agama baca-saja
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.quran_ayat where id in (1, 2)') = 2, 'ustadz dapat membaca quran_ayat');
+  perform rls_test.cek(rls_test.ditolak($q$update public.quran_ayat set teks_utsmani = 'diubah' where id = 1$q$),
+    'ustadz tidak dapat mengubah quran_ayat');
+  perform rls_test.cek(rls_test.ditolak($q$delete from public.quran_ayat where id = 2$q$), 'ustadz tidak dapat menghapus quran_ayat');
+  perform rls_test.cek(rls_test.ditolak($q$update public.quran_surah set nama_latin = 'diubah' where id = 1$q$),
+    'ustadz tidak dapat mengubah quran_surah');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.rujukan(jenis, judul) values ('tafsir', 'RLS usulan ustadz')$q$),
+    'ustadz tidak dapat menambah rujukan');
+  perform rls_test.cek(rls_test.ditolak($q$update public.rujukan set status = 'disetujui', disahkan_oleh_nama = 'x' where id = '44444444-0000-0000-0000-000000000002'$q$),
+    'ustadz tidak dapat mengesahkan rujukan');
+  perform rls_test.cek(rls_test.ditolak($q$update public.hukum_tajwid set warna_hex = '#000000' where kode = 'ghunnah'$q$),
+    'ustadz tidak dapat mengubah hukum tajwid');
+  perform rls_test.cek(rls_test.ditolak($q$select public.atur_peran_user('00000000-0000-0000-0000-0000000000b1', array['admin']::public.app_role[])$q$),
+    'ustadz tidak dapat mengatur peran');
+end $$;
+reset role;
+
+-- kepala sekolah: baca semua, tulis tidak
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.santri where nis like 'RLS-%'$q$) = 4, 'kepsek membaca semua santri');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.halaqah where nama like 'RLS %'$q$) = 2, 'kepsek membaca semua halaqah');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.setoran_iqro where id::text like '33333333-%'$q$) >= 3, 'kepsek membaca semua setoran');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.kehadiran k join public.santri s on s.id = k.santri_id where s.nis like 'RLS-%'$q$) >= 3,
+    'kepsek membaca semua kehadiran');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.wali_santri where santri_id::text like '22222222-%'$q$) >= 3, 'kepsek membaca relasi wali');
+  perform rls_test.cek(rls_test.ditolak($q$update public.santri set catatan = 'Diubah kepsek' where nis = 'RLS-001'$q$), 'kepsek tidak dapat mengubah santri');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.kehadiran(santri_id, tanggal, status, dicatat_oleh)
+    values ('22222222-0000-0000-0000-000000000001', '2026-10-20', 'hadir', '00000000-0000-0000-0000-0000000000f1')$q$),
+    'kepsek tidak dapat mencatat kehadiran');
+  perform rls_test.cek(rls_test.ditolak($q$update public.setoran_iqro set nilai = 'ulang' where id = '33333333-0000-0000-0000-000000000003'$q$),
+    'kepsek tidak dapat mengubah nilai');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.user_roles(user_id, role) values ('00000000-0000-0000-0000-0000000000f1', 'admin')$q$),
+    'kepsek tidak dapat menaikkan perannya');
+end $$;
+reset role;
+
+-- tata usaha: kelola data induk santri, tanpa akses setoran/kehadiran
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000f2","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.santri where nis like 'RLS-%'$q$) = 4, 'tu membaca semua santri');
+  perform rls_test.cek(not rls_test.ditolak($q$update public.santri set nama = 'Anak Y (tu)', kelas = '2' where nis = 'RLS-003'$q$),
+    'tu dapat mengubah data induk santri');
+  perform rls_test.cek(not rls_test.ditolak($q$insert into public.santri(nis, nama, kelas, jalur) values ('RLS-005', 'Anak baru', '1', 'iqro')$q$),
+    'tu dapat menambah santri');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.setoran_iqro where id::text like '33333333-%'$q$) = 0, 'tu tidak membaca setoran');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.kehadiran$q$) = 0, 'tu tidak membaca kehadiran');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.user_roles(user_id, role) values ('00000000-0000-0000-0000-0000000000f2', 'admin')$q$),
+    'tu tidak dapat menaikkan perannya');
+  perform rls_test.cek(rls_test.ditolak($q$update public.quran_surah set nama_latin = 'diubah' where id = 1$q$), 'tu tidak dapat mengubah quran_surah');
+end $$;
+reset role;
+
+-- satu akun dengan dua peran (ustadz halaqah Y + wali anak B): hak keduanya berlaku, tidak lebih
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000f3","role":"authenticated"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.santri where nis in ('RLS-002', 'RLS-003')$q$) = 2,
+    'ustadz-wali melihat santri halaqahnya dan anaknya');
+  perform rls_test.cek(rls_test.jumlah($q$select 1 from public.santri where nis in ('RLS-001', 'RLS-004')$q$) = 0,
+    'ustadz-wali tidak melihat santri lain');
+  perform rls_test.cek(not rls_test.ditolak($q$insert into public.setoran_iqro(santri_id, tanggal, tempat, jilid, halaman_dari, halaman_sampai, disimak, diisi_oleh)
+    values ('22222222-0000-0000-0000-000000000002', '2026-10-20', 'rumah', 1, 1, 2, true, '00000000-0000-0000-0000-0000000000f3')$q$),
+    'ustadz-wali dapat mengisi setoran rumah anaknya');
+  perform rls_test.cek(rls_test.ditolak($q$insert into public.setoran_iqro(santri_id, tanggal, tempat, jilid, halaman_dari, halaman_sampai, nilai, diisi_oleh)
+    values ('22222222-0000-0000-0000-000000000002', '2026-10-20', 'sekolah', 1, 1, 2, 'lancar', '00000000-0000-0000-0000-0000000000f3')$q$),
+    'ustadz-wali tidak dapat mengisi setoran sekolah untuk anaknya di halaqah lain');
+  perform rls_test.cek(not rls_test.ditolak($q$insert into public.setoran_iqro(santri_id, tanggal, tempat, jilid, halaman_dari, halaman_sampai, nilai, diisi_oleh)
+    values ('22222222-0000-0000-0000-000000000003', '2026-10-20', 'sekolah', 1, 1, 2, 'lancar', '00000000-0000-0000-0000-0000000000f3')$q$),
+    'ustadz-wali dapat mengisi setoran sekolah di halaqahnya');
+end $$;
+reset role;
+
+-- admin: atur multi-peran
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true);
+do $$
+begin
+  perform public.atur_peran_user('00000000-0000-0000-0000-0000000000f2', array['tu', 'bendahara']::public.app_role[]);
+  perform rls_test.cek((select array_agg(role::text order by role::text) from public.user_roles where user_id = '00000000-0000-0000-0000-0000000000f2') = array['bendahara', 'tu'],
+    'admin dapat memberi beberapa peran sekaligus');
+  perform public.atur_peran_user('00000000-0000-0000-0000-0000000000f2', array['tu']::public.app_role[]);
+  perform rls_test.cek((select count(*) from public.user_roles where user_id = '00000000-0000-0000-0000-0000000000f2') = 1,
+    'admin dapat mencabut peran');
+  perform rls_test.cek(rls_test.ditolak($q$select public.atur_peran_user('00000000-0000-0000-0000-0000000000a1', array['ustadz']::public.app_role[])$q$),
+    'admin tidak dapat mencabut peran admin sendiri');
+  perform rls_test.cek(not rls_test.ditolak($q$insert into public.rujukan(jenis, judul) values ('tafsir', 'RLS usulan admin')$q$),
+    'admin dapat menambah usulan rujukan');
+end $$;
+reset role;
+
+-- anon tetap tertutup untuk tabel baru
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+do $$
+begin
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.rujukan') = -1, 'anon tidak dapat membaca rujukan');
+  perform rls_test.cek(rls_test.jumlah('select 1 from public.hukum_tajwid') = -1, 'anon tidak dapat membaca hukum tajwid');
 end $$;
 reset role;
 

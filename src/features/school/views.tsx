@@ -22,16 +22,59 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { schoolQuery } from "./queries";
 import { SchoolShell } from "./shell";
-import { jakartaDate, schoolName, schoolAddress, calendarTypes, isEffectiveDay } from "./constants";
+import {
+  jakartaDate,
+  schoolName,
+  schoolAddress,
+  calendarTypes,
+  isEffectiveDay,
+  roles as allRoles,
+  roleLabels,
+  referenceTypes,
+  tajwidGroups,
+  type Role,
+} from "./constants";
 import { createAccount } from "./data.functions";
 import type { Database } from "@/integrations/supabase/types";
 type Ayat = Database["public"]["Tables"]["quran_ayat"]["Row"];
 export function useSchool() {
   const { data } = useSuspenseQuery(schoolQuery);
   const qc = useQueryClient();
-  const role = data.roles.find((r) => r.user_id === data.userId)?.role;
+  const myRoles = allRoles.filter((r) =>
+    data.roles.some((x) => x.user_id === data.userId && x.role === r),
+  );
+  // Peran utama (prioritas tertinggi) untuk tampilan; hak sebenarnya tetap ditegakkan RLS.
+  const role = myRoles[0];
+  const has = (...r: Role[]) => r.some((x) => myRoles.includes(x));
   const me = data.profiles.find((p) => p.id === data.userId);
-  return { data, role, me, refresh: () => qc.invalidateQueries({ queryKey: ["school"] }) };
+  // Cermin owns_child() dan can_teach_santri() di database, untuk akun dengan beberapa peran.
+  const isMyChild = (santriId: string) =>
+    has("wali") &&
+    data.relations.some((r) => r.wali_id === data.userId && r.santri_id === santriId);
+  const today = jakartaDate();
+  const canTeach = (halaqahId: string | null) =>
+    has("admin") ||
+    (!!halaqahId &&
+      ((has("ustadz") &&
+        data.halaqah.some((h) => h.id === halaqahId && h.ustadz_id === data.userId)) ||
+        (has("badal") &&
+          data.badal.some(
+            (b) =>
+              b.halaqah_id === halaqahId &&
+              b.ustadz_id === data.userId &&
+              b.mulai <= today &&
+              today <= b.selesai,
+          ))));
+  return {
+    data,
+    role,
+    myRoles,
+    has,
+    isMyChild,
+    canTeach,
+    me,
+    refresh: () => qc.invalidateQueries({ queryKey: ["school"] }),
+  };
 }
 function Notice({ message }: { message: string }) {
   return message ? (
@@ -49,10 +92,10 @@ export function ProtectedPage({
   subtitle?: string | undefined;
   children: ReactNode;
 }) {
-  const { role, me, refresh } = useSchool();
+  const { role, has, me, refresh } = useSchool();
   const [message, setMessage] = useState("");
   const [agree, setAgree] = useState(false);
-  if (role === "wali" && !me?.persetujuan_data_pada)
+  if (has("wali") && !me?.persetujuan_data_pada)
     return (
       <SchoolShell title="Persetujuan penggunaan data">
         <section className="consent-section">
@@ -336,7 +379,7 @@ export function HomeView() {
   );
 }
 export function EntryView({ initial = "" }: { initial?: string }) {
-  const { data, role, me, refresh } = useSchool();
+  const { data, role, me, refresh, isMyChild, canTeach } = useSchool();
   const [student, setStudent] = useState(initial || data.santri[0]?.id || "");
   useEffect(() => {
     if (!student && data.santri[0]) setStudent(data.santri[0].id);
@@ -359,7 +402,7 @@ export function EntryView({ initial = "" }: { initial?: string }) {
   const [pageTo, setPageTo] = useState(1);
   const first = verses.find((v) => v.id === Number(from)),
     last = verses.find((v) => v.id === Number(to));
-  const home = role === "wali";
+  const home = !!s && isMyChild(s.id) && !canTeach(s.halaqah_id);
   const [summary, setSummary] = useState<{
     jumlah_baris: number;
     halaman_dari: number;
@@ -701,7 +744,7 @@ export function EntryView({ initial = "" }: { initial?: string }) {
   );
 }
 export function HistoryView() {
-  const { data, role, refresh } = useSchool();
+  const { data, refresh, isMyChild, canTeach } = useSchool();
   const [student, setStudent] = useState(data.santri[0]?.id || "");
   const [filter, setFilter] = useState("semua");
   const [message, setMessage] = useState("");
@@ -810,7 +853,11 @@ export function HistoryView() {
                           <CheckCircle2 size={17} />
                           Sudah diparaf
                         </span>
-                      ) : role === "wali" && e.tempat === "sekolah" ? (
+                      ) : e.tempat === "sekolah" &&
+                        isMyChild(e.santri_id) &&
+                        !canTeach(
+                          data.santri.find((x) => x.id === e.santri_id)?.halaqah_id ?? null,
+                        ) ? (
                         <Button
                           variant="outline"
                           onClick={async () => {
@@ -846,6 +893,7 @@ export function AccountView() {
   const [name, setName] = useState(me?.nama || "");
   const [phone, setPhone] = useState(me?.no_hp || "");
   const [size, setSize] = useState(me?.ukuran_huruf_quran || "sedang");
+  const [tajwid, setTajwid] = useState(me?.tampilkan_tajwid ?? true);
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   return (
@@ -856,7 +904,12 @@ export function AccountView() {
           e.preventDefault();
           const r = await supabase
             .from("profiles")
-            .update({ nama: name, no_hp: phone, ukuran_huruf_quran: size })
+            .update({
+              nama: name,
+              no_hp: phone,
+              ukuran_huruf_quran: size,
+              tampilkan_tajwid: tajwid,
+            })
             .eq("id", me?.id || "");
           setMessage(r.error ? r.error.message : "Pengaturan akun disimpan.");
           if (!r.error) await refresh();
@@ -887,6 +940,10 @@ export function AccountView() {
               </option>
             ))}
           </select>
+        </label>
+        <label className="check-label">
+          <input type="checkbox" checked={tajwid} onChange={(e) => setTajwid(e.target.checked)} />
+          Tampilkan warna tajwid pada teks Al-Qur’an
         </label>
         <Notice message={message} />
         <Button>
@@ -921,7 +978,7 @@ export function AccountView() {
   );
 }
 export function SupervisorView() {
-  const { data, role } = useSchool();
+  const { data, has } = useSchool();
   const [start, setStart] = useState(jakartaDate(new Date(Date.now() - 6 * 86400000)));
   const [end, setEnd] = useState(jakartaDate());
   return (
@@ -929,7 +986,7 @@ export function SupervisorView() {
       title="Pengawasan halaqah"
       subtitle="Ringkasan setoran santri per pekan · Baca-saja"
     >
-      {!["admin", "pengawas"].includes(role || "") ? (
+      {!has("admin", "pengawas", "kepsek") ? (
         <p>Akses pengawas diperlukan.</p>
       ) : (
         <>
@@ -1010,6 +1067,14 @@ async function saveAdminRow(t: string, v: Record<string, unknown>) {
       return supabase
         .from("penugasan_badal")
         .upsert(v as Database["public"]["Tables"]["penugasan_badal"]["Insert"]);
+    case "rujukan":
+      return supabase
+        .from("rujukan")
+        .upsert(v as Database["public"]["Tables"]["rujukan"]["Insert"]);
+    case "hukum_tajwid":
+      return supabase
+        .from("hukum_tajwid")
+        .upsert(v as Database["public"]["Tables"]["hukum_tajwid"]["Insert"]);
     case "pengaturan_sekolah":
       return supabase
         .from("pengaturan_sekolah")
@@ -1019,7 +1084,8 @@ async function saveAdminRow(t: string, v: Record<string, unknown>) {
   }
 }
 export function AdminView() {
-  const { data, role, refresh } = useSchool();
+  const { data, has, refresh } = useSchool();
+  const admin = has("admin");
   const [tab, setTab] = useState("santri");
   const [message, setMessage] = useState("");
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
@@ -1065,12 +1131,46 @@ export function AdminView() {
       ],
       rows: data.settings,
     },
+    rujukan: {
+      title: "Rujukan",
+      fields: [
+        "judul",
+        "jenis",
+        "status",
+        "disahkan_oleh_nama",
+        "penulis",
+        "pentahqiq",
+        "penerbit",
+        "edisi",
+        "lisensi_atau_izin",
+        "catatan",
+      ],
+      rows: data.references,
+    },
+    hukum_tajwid: {
+      title: "Hukum tajwid",
+      fields: [
+        "kode",
+        "nama",
+        "kelompok",
+        "warna_hex",
+        "penjelasan",
+        "bait_matan",
+        "contoh",
+        "rujukan_id",
+      ],
+      rows: data.tajwid,
+    },
     user: {
       title: "User & peran",
       fields: ["nama", "email", "password", "role"],
       rows: data.profiles,
     },
   };
+  // Tata usaha hanya mengelola data induk santri dan relasi wali.
+  const visibleTabs = Object.keys(configs).filter(
+    (k) => admin || k === "santri" || k === "wali_santri",
+  );
   type Key = keyof typeof configs;
   const config = configs[tab as Key];
   const labels: Record<string, string> = {
@@ -1101,15 +1201,45 @@ export function AdminView() {
     email: "Email",
     password: "Kata sandi awal",
     role: "Peran",
+    judul: "Judul",
+    jenis: "Jenis",
+    status: "Status",
+    disahkan_oleh_nama: "Disahkan oleh (nama ustadz)",
+    penulis: "Penulis",
+    pentahqiq: "Pentahqiq",
+    penerbit: "Penerbit",
+    edisi: "Edisi",
+    lisensi_atau_izin: "Lisensi / izin",
+    kode: "Kode kelas markup",
+    kelompok: "Kelompok",
+    warna_hex: "Warna",
+    penjelasan: "Penjelasan",
+    bait_matan: "Bait matan",
+    contoh: "Contoh",
+    rujukan_id: "Rujukan",
   };
+  const optional = [
+    "catatan",
+    "kepala_sekolah",
+    "penulis",
+    "pentahqiq",
+    "penerbit",
+    "edisi",
+    "lisensi_atau_izin",
+    "disahkan_oleh_nama",
+    "penjelasan",
+    "bait_matan",
+    "contoh",
+  ];
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("");
     const f = new FormData(e.currentTarget);
     const values: Record<string, unknown> = Object.fromEntries(f);
+    const pickedRoles = f.getAll("role").map(String) as Role[];
     for (const k of ["semester", "putaran_manzil_hari", "putaran_sabqi_hari"])
       if (k in values) values[k] = Number(values[k]);
-    for (const k of ["ustadz_id", "pengawas_id", "halaqah_id"])
+    for (const k of ["ustadz_id", "pengawas_id", "halaqah_id", "rujukan_id"])
       if (values[k] === "") values[k] = null;
     if ("alpa_kurangi_target" in values)
       values["alpa_kurangi_target"] = values["alpa_kurangi_target"] === "true";
@@ -1120,11 +1250,11 @@ export function AdminView() {
         .filter(Boolean);
     try {
       if (tab === "user") {
+        if (!pickedRoles.length) throw new Error("Pilih minimal satu peran.");
         if (editing) {
-          const uid = String(editing["id"]);
-          const r = await supabase.rpc("set_user_role", {
-            _user: uid,
-            _role: String(values["role"]) as Database["public"]["Enums"]["app_role"],
+          const r = await supabase.rpc("atur_peran_user", {
+            _user: String(editing["id"]),
+            _roles: pickedRoles,
           });
           if (r.error) throw r.error;
         } else
@@ -1133,13 +1263,14 @@ export function AdminView() {
               nama: String(values["nama"]),
               email: String(values["email"]),
               password: String(values["password"]),
-              role: String(values["role"]) as Database["public"]["Enums"]["app_role"],
+              roles: pickedRoles,
             },
           });
       } else {
         const t = tab as Exclude<Key, "user">;
         if (editing) {
           if ("id" in editing) values["id"] = editing["id"];
+          else if ("kode" in editing) values["kode"] = editing["kode"];
           else {
             values["wali_id"] = editing["wali_id"];
             values["santri_id"] = editing["santri_id"];
@@ -1166,8 +1297,13 @@ export function AdminView() {
         { id: "true", nama: "Ya" },
       ];
     if (k === "semester") return ["1", "2"].map((v) => ({ id: v, nama: v }));
-    if (k === "role")
-      return ["admin", "ustadz", "badal", "pengawas", "wali"].map((v) => ({ id: v, nama: v }));
+    if (k === "jenis") return referenceTypes.map((v) => ({ id: v, nama: v }));
+    if (k === "kelompok") return tajwidGroups.map((v) => ({ id: v, nama: v.replaceAll("_", " ") }));
+    if (k === "status") return ["usulan", "disetujui", "ditolak"].map((v) => ({ id: v, nama: v }));
+    if (k === "rujukan_id")
+      return data.references
+        .filter((r) => r.status === "disetujui")
+        .map((r) => ({ id: r.id, nama: r.judul }));
     if (k === "halaqah_id") return data.halaqah;
     if (k === "santri_id") return data.santri;
     if (k.endsWith("_id"))
@@ -1186,34 +1322,38 @@ export function AdminView() {
       title="Administrasi sekolah"
       subtitle="Kelola data sekolah dan pendampingan santri."
     >
-      {role !== "admin" ? (
+      {!has("admin", "tu") ? (
         <p>Akses admin diperlukan.</p>
       ) : (
         <>
           <div className="admin-tabs">
-            {Object.entries(configs).map(([key, v]) => (
+            {Object.entries(configs)
+              .filter(([key]) => visibleTabs.includes(key))
+              .map(([key, v]) => (
+                <Button
+                  key={key}
+                  variant={tab === key ? "default" : "ghost"}
+                  onClick={() => {
+                    setTab(key);
+                    setAdding(false);
+                    setEditing(null);
+                    setMessage("");
+                  }}
+                >
+                  {v.title}
+                </Button>
+              ))}
+            {admin && (
               <Button
-                key={key}
-                variant={tab === key ? "default" : "ghost"}
+                variant={tab === "quran" ? "default" : "ghost"}
                 onClick={() => {
-                  setTab(key);
+                  setTab("quran");
                   setAdding(false);
-                  setEditing(null);
-                  setMessage("");
                 }}
               >
-                {v.title}
+                Impor Al-Qur’an
               </Button>
-            ))}
-            <Button
-              variant={tab === "quran" ? "default" : "ghost"}
-              onClick={() => {
-                setTab("quran");
-                setAdding(false);
-              }}
-            >
-              Impor Al-Qur’an
-            </Button>
+            )}
           </div>
           <Notice message={message} />
           {tab === "quran" ? (
@@ -1240,7 +1380,31 @@ export function AdminView() {
                   <div className="form-grid">
                     {config.fields
                       .filter((k) => !editing || tab !== "user" || k === "role")
+                      .filter((k) => !editing || k !== "kode")
                       .map((k) => {
+                        if (k === "role") {
+                          const current = editing
+                            ? data.roles
+                                .filter((x) => x.user_id === editing["id"])
+                                .map((x) => x.role)
+                            : [];
+                          return (
+                            <fieldset key={k} className="role-picker">
+                              <legend>{labels[k]}</legend>
+                              {allRoles.map((r) => (
+                                <label key={r} className="check-label">
+                                  <input
+                                    type="checkbox"
+                                    name="role"
+                                    value={r}
+                                    defaultChecked={current.includes(r)}
+                                  />
+                                  {roleLabels[r]}
+                                </label>
+                              ))}
+                            </fieldset>
+                          );
+                        }
                         const opts = options(k);
                         const def =
                           editing?.[k] ??
@@ -1264,7 +1428,7 @@ export function AdminView() {
                               <select
                                 name={k}
                                 defaultValue={String(def)}
-                                required={!["ustadz_id", "pengawas_id"].includes(k)}
+                                required={!["ustadz_id", "pengawas_id", "rujukan_id"].includes(k)}
                               >
                                 <option value="">Pilih {labels[k]}</option>
                                 {opts.map((o) => (
@@ -1284,13 +1448,15 @@ export function AdminView() {
                                       ? "password"
                                       : k === "email"
                                         ? "email"
-                                        : k.startsWith("putaran")
-                                          ? "number"
-                                          : "text"
+                                        : k === "warna_hex"
+                                          ? "color"
+                                          : k.startsWith("putaran")
+                                            ? "number"
+                                            : "text"
                                 }
                                 min={k.startsWith("putaran") ? 1 : undefined}
                                 minLength={k === "password" ? 8 : undefined}
-                                required={!["catatan", "kepala_sekolah"].includes(k)}
+                                required={!optional.includes(k)}
                               />
                             )}
                           </label>
@@ -1331,25 +1497,34 @@ export function AdminView() {
                     {config.rows.map((row, index) => {
                       const r = row as unknown as Record<string, unknown>;
                       return (
-                        <tr key={String(r["id"] || index)}>
+                        <tr key={String(r["id"] || r["kode"] || index)}>
                           {(tab === "user"
                             ? ["nama", "no_hp", "role"]
                             : config.fields.slice(0, 4)
                           ).map((k) => (
                             <td key={k}>
-                              {k === "role"
-                                ? data.roles
-                                    .filter((x) => x.user_id === r["id"])
-                                    .map((x) => x.role)
-                                    .join(", ") || "Belum ditugaskan"
-                                : k.endsWith("_id")
-                                  ? (k === "halaqah_id"
-                                      ? data.halaqah
-                                      : k === "santri_id"
-                                        ? data.santri
-                                        : data.profiles
-                                    ).find((x) => x.id === r[k])?.nama || "—"
-                                  : String(r[k] || "—")}
+                              {k === "role" ? (
+                                data.roles
+                                  .filter((x) => x.user_id === r["id"])
+                                  .map((x) => roleLabels[x.role])
+                                  .join(", ") || "Belum ditugaskan"
+                              ) : k === "rujukan_id" ? (
+                                data.references.find((x) => x.id === r[k])?.judul || "—"
+                              ) : k === "warna_hex" ? (
+                                <span className="color-chip">
+                                  <i style={{ background: String(r[k]) }} />
+                                  {String(r[k])}
+                                </span>
+                              ) : k.endsWith("_id") ? (
+                                (k === "halaqah_id"
+                                  ? data.halaqah
+                                  : k === "santri_id"
+                                    ? data.santri
+                                    : data.profiles
+                                ).find((x) => x.id === r[k])?.nama || "—"
+                              ) : (
+                                String(r[k] || "—")
+                              )}
                             </td>
                           ))}
                           <td>
@@ -1387,11 +1562,16 @@ function QuranImport() {
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const { refresh } = useSchool();
+  const { data, refresh } = useSchool();
+  const mushafRefs = data.references.filter(
+    (r) => r.jenis === "mushaf" && r.status === "disetujui",
+  );
+  const [reference, setReference] = useState("");
   const fields =
     target === "quran_surah"
       ? ["id", "nama_latin", "nama_arab", "jumlah_ayat"]
       : ["id", "surah", "ayat", "juz", "halaman", "baris_awal", "baris_akhir", "teks_utsmani"];
+  const optionalFields = target === "quran_ayat" ? ["teks_tajwid"] : [];
   async function parse(file: File | undefined) {
     if (!file) return;
     setMessage("");
@@ -1411,12 +1591,19 @@ function QuranImport() {
         for (const k of fields)
           if (row[k] === undefined || row[k] === "")
             throw new Error("Kolom wajib tidak lengkap: " + k);
-        for (const k of fields.filter((k) => !k.startsWith("nama") && k !== "teks_utsmani")) {
+        for (const k of fields.filter((k) => !k.startsWith("nama") && !k.startsWith("teks"))) {
           row[k] = Number(row[k]);
           if (!Number.isInteger(row[k])) throw new Error("Angka tidak valid pada " + k);
         }
       }
-      setRows(parsed.map((r) => Object.fromEntries(fields.map((k) => [k, r[k]]))));
+      setRows(
+        parsed.map((r) =>
+          Object.fromEntries([
+            ...fields.map((k) => [k, r[k]]),
+            ...optionalFields.map((k) => [k, typeof r[k] === "string" ? r[k] : ""]),
+          ]),
+        ),
+      );
     } catch (err) {
       setRows([]);
       setMessage(err instanceof Error ? err.message : "File tidak dapat dibaca.");
@@ -1442,12 +1629,34 @@ function QuranImport() {
           <option value="quran_ayat">Ayat</option>
         </select>
       </label>
+      {target === "quran_ayat" && (
+        <label>
+          Rujukan mushaf (disahkan asatidzah)
+          <select value={reference} onChange={(e) => setReference(e.target.value)} required>
+            <option value="">Pilih rujukan</option>
+            {mushafRefs.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.judul}
+                {r.edisi ? ` · ${r.edisi}` : ""}
+              </option>
+            ))}
+          </select>
+          {!mushafRefs.length && (
+            <span className="muted-note">
+              Belum ada rujukan mushaf berstatus disetujui. Tambahkan dan sahkan di tab Rujukan.
+            </span>
+          )}
+        </label>
+      )}
       <label className="upload-area">
         <BookOpen />
         <strong>Pilih file CSV atau JSON</strong>
         <input type="file" accept=".csv,.json" onChange={(e) => void parse(e.target.files?.[0])} />
       </label>
-      <p className="muted-note">Kolom: {fields.join(", ")}</p>
+      <p className="muted-note">
+        Kolom: {fields.join(", ")}
+        {optionalFields.length ? ` · opsional: ${optionalFields.join(", ")}` : ""}
+      </p>
       {rows.length > 0 && (
         <>
           <h3>Pratinjau 10 baris pertama · {rows.length} baris</h3>
@@ -1455,7 +1664,7 @@ function QuranImport() {
             <table>
               <thead>
                 <tr>
-                  {fields.map((k) => (
+                  {[...fields, ...optionalFields].map((k) => (
                     <th key={k}>{k}</th>
                   ))}
                 </tr>
@@ -1463,8 +1672,8 @@ function QuranImport() {
               <tbody>
                 {rows.slice(0, 10).map((r, i) => (
                   <tr key={i}>
-                    {fields.map((k) => (
-                      <td key={k}>{String(r[k])}</td>
+                    {[...fields, ...optionalFields].map((k) => (
+                      <td key={k}>{String(r[k]).slice(0, 80)}</td>
                     ))}
                   </tr>
                 ))}
@@ -1472,13 +1681,15 @@ function QuranImport() {
             </table>
           </div>
           <Button
-            disabled={busy}
+            disabled={busy || (target === "quran_ayat" && !reference)}
             onClick={async () => {
               setBusy(true);
               setMessage("");
               try {
                 for (let i = 0; i < rows.length; i += 200) {
-                  const part = rows.slice(i, i + 200);
+                  const part = rows
+                    .slice(i, i + 200)
+                    .map((r) => (target === "quran_ayat" ? { ...r, rujukan_id: reference } : r));
                   const result =
                     target === "quran_surah"
                       ? await supabase
