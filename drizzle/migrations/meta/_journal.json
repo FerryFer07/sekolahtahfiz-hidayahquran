@@ -22,20 +22,6 @@
       "when": 1792035924541,
       "tag": "0002_verse_range_preview_and_role_assignment",
       "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1792044098614,
-      "tag": "0003_rls_hardening",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1792113489222,
-      "tag": "0004_kalender_sekolah",
-      "breakpoints": true
     }
   ]
 }
